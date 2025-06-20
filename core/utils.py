@@ -40,3 +40,54 @@ def pretty_print_messages(update, last_message=False):
         for m in messages:
             pretty_print_message(m, indent=is_subgraph)
         print("\n")
+
+
+def pretty_yield_messages(update, last_message=False):
+    """
+    Similar to pretty_print_messages but yields formatted content for streaming.
+
+    Args:
+        update: The update from the supervisor
+        last_message: Whether to return only the last message
+
+    Yields:
+        Formatted message content parts as strings
+    """
+    is_subgraph = False
+    if isinstance(update, tuple):
+        ns, update = update
+        # skip parent graph updates
+        if len(ns) == 0:
+            return
+
+        graph_id = ns[-1].split(":")[0]
+        yield f"Update from subgraph {graph_id}:\n\n"
+        is_subgraph = True
+
+    for node_name, node_update in update.items():
+        # update_label = f"Update from node {node_name}:\n\n"
+        # if is_subgraph:
+        #     update_label = "\t" + update_label
+        # yield update_label
+
+        messages = convert_to_messages(node_update["messages"])
+        if last_message:
+            messages = messages[-1:]
+
+        for m in messages:
+            pretty_message = m.pretty_repr(html=True)
+            if is_subgraph:
+                pretty_message = "\n".join("\t" + c for c in pretty_message.split("\n"))
+            yield pretty_message
+
+        yield "\n"
+
+
+def clean_messages(messages: str):
+    # stipe, remove extra spaces, and newlines
+    cleaned = messages.strip().replace("\n", " ").replace("\r", " ")
+    import re
+
+    # use re to clean anything embeeded by = =
+    cleaned = re.sub(r"=+\s*[^=]+?\s*=+", "", cleaned)
+    return cleaned

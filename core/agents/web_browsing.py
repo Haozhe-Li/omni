@@ -18,6 +18,7 @@ web_page_agent = create_react_agent(
         "- Assist ONLY with web page loading tasks\n"
         "- After you're done with your tasks, respond to the supervisor directly\n"
         "- Respond ONLY with the results of your work, do NOT include ANY other text."
+        "- Resond your answer in <agent_response> tag\n"
     ),
     name="web_page_agent",
 )

@@ -25,6 +25,7 @@ math_agent = create_react_agent(
         "- Assist ONLY with math-related tasks\n"
         "- After you're done with your tasks, respond to the supervisor directly\n"
         "- Respond ONLY with the results of your work, do NOT include ANY other text."
+        "- Respond your answer in <agent_response> tag\n"
     ),
     name="math_agent",
 )

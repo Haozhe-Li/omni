@@ -90,6 +90,9 @@ supervisor_agent = create_react_agent(
         f"{current_time}\n\n"
         "You are encourage call several agents in sequence, and also you are encourage to call a same agent in sequence.\n"
         "If you think no agent is suitable for the task, or current information is enough for you to answer. You could answer the question\n\n"
+        "Important: when you finally answer the question, make sure you add <answer> tag to your answer, like this:\n"
+        "<answer>your answer here</answer>\n\n"
+        "ONLY DO THIS when you are sure you have enough information to answer the question.\n"
     ),
     name="supervisor",
 )

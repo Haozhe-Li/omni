@@ -14,6 +14,7 @@ planning_agent = create_react_agent(
         "- After you're done with your tasks, respond to the supervisor directly\n"
         "- Respond ONLY with the results of your work, do NOT include ANY other text."
         "- Planning ONLY, DO NOT answer any questions directly.\n"
+        "- Respond your answer in <agent_response> tag\n"
     ),
     name="planning_agent",
 )

@@ -1,5 +1,5 @@
 from core.supervisors import *
-from core.utils import pretty_print_messages, pretty_print_message
+from core.utils import pretty_yield_messages
 
 for chunk in supervisor.stream(
     {
@@ -11,4 +11,4 @@ for chunk in supervisor.stream(
         ]
     },
 ):
-    pretty_print_messages(chunk, last_message=True)
+    pretty_yield_messages(chunk, last_message=True)

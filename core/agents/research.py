@@ -41,6 +41,7 @@ research_agent = create_react_agent(
         "- Assist ONLY with research-related tasks, DO NOT do any math\n"
         "- After you're done with your tasks, respond to the supervisor directly\n"
         "- Respond ONLY with the results of your work, do NOT include ANY other text."
+        "- Respond your answer in <agent_response> tag\n"
     ),
     name="research_agent",
 )
