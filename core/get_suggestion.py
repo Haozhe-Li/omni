@@ -1,19 +1,31 @@
 from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from core.globalvaris import *
 
 model = ChatOpenAI(model=OPENAI_CHAT_MODEL_FAST).with_structured_output(
     method="json_mode"
 )
 
+groq_model = ChatGroq(model=GROQ_CHAT_MODEL_FAST).with_structured_output(
+    method="json_mode"
+)
+
 
 class SuggestionAgent:
     def __init__(self):
-        self.model = model
+        self.model = groq_model
         self.prompt = """
 You are a suggestion agent. Your task is to provide possible follow-up questions based on the provided question.
 You MUST use the same language as the question.
 You should answer in json mode, follow the schema below:
 {{"suggestion": ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]}}
+
+Example:
+question: How's the weather in New York?
+suggestion: 
+{{"suggestion": ["Is it going to rain in New York today?", "What are the weather conditions in New York right now?", "How does the weather in New York compare to other cities?"]}}
+
+Here's the question:
 {question}
 """
 
