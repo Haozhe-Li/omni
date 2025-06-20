@@ -116,9 +116,7 @@ def search_tool(query: str) -> str:
 from langgraph.graph import MessagesState
 from langchain.chat_models import init_chat_model
 
-response_model = init_chat_model(
-    "groq:meta-llama/llama-4-scout-17b-16e-instruct", temperature=0
-)
+response_model = init_chat_model("openai:gpt-4.1-nano", temperature=0)
 
 
 def generate_query_or_respond(state: MessagesState):
@@ -184,9 +182,7 @@ class EvaluateDocuments(BaseModel):
     )
 
 
-eval_model = init_chat_model(
-    "groq:meta-llama/llama-4-scout-17b-16e-instruct", temperature=0
-)
+eval_model = init_chat_model("openai:gpt-4.1-nano", temperature=0)
 
 
 class EvaluateBudget:
