@@ -103,7 +103,10 @@ async def suggest_endpoint(suggestion_model: SuggestionModel):
     """
     input_data = suggestion_model.question
     suggestion_agent = SuggestionAgent()
-    suggestion = suggestion_agent.get_suggestion(question=input_data)
+    if not input_data or input_data.strip() == "":
+        suggestion = suggestion_agent.get_welcome_suggestion()
+    else:
+        suggestion = suggestion_agent.get_suggestion(question=input_data)
     print("Suggestion:", suggestion)
     return suggestion
 
