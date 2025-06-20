@@ -91,3 +91,19 @@ def clean_messages(messages: str):
     # use re to clean anything embeeded by = =
     cleaned = re.sub(r"=+\s*[^=]+?\s*=+", "", cleaned)
     return cleaned
+
+
+def format_tool_messages(messages: str):
+    if "<agent_response>" in messages:
+        # cut only between <agent_response> and </agent_response>
+        start = messages.find("<agent_response>") + len("<agent_response>")
+        end = messages.find("</agent_response>")
+        return messages[start:end].strip()
+    elif "transfer_to_" in messages:
+        if "math" in messages:
+            return "Math agent is thinking..."
+        elif "research" in messages:
+            return "Searching information over internet..."
+        elif "web_page" in messages:
+            return "Reading web page..."
+    return messages.strip()

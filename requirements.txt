@@ -1,6 +1,11 @@
-fastapi>=0.105.0
-uvicorn>=0.24.0
-pydantic>=2.4.0
-langchain>=0.0.335
-langgraph>=0.0.23
-# Add any other dependencies your project requires
+fastapi
+uvicorn
+pydantic
+langchain
+langgraph
+langgraph-supervisor 
+langchain-groq
+langchain-community
+langchain-openai
+beautifulsoup4
+nest_asyncio
