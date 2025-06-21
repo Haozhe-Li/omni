@@ -85,7 +85,7 @@ def pretty_yield_messages(update, last_message=False):
 
 def clean_messages(messages: str):
     # stipe, remove extra spaces, and newlines
-    cleaned = messages.strip().replace("\n", " ").replace("\r", " ")
+    cleaned = messages.strip()
     import re
 
     # use re to clean anything embeeded by = =

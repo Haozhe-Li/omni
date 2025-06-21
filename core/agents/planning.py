@@ -1,7 +1,10 @@
 from langgraph.prebuilt import create_react_agent
+from core.globalvaris import OPENAI_CHAT_MODEL_FAST
+
+model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
 
 planning_agent = create_react_agent(
-    model="openai:gpt-4.1-nano",
+    model=model,
     tools=[],
     prompt=(
         "You are a planning agent. Your task is to think about the question and plan what steps to take next.\n\n"

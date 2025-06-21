@@ -1,9 +1,14 @@
 from langchain_community.utilities import GoogleSerperAPIWrapper
 import nest_asyncio
+from langgraph.prebuilt import create_react_agent
+from core.globalvaris import OPENAI_CHAT_MODEL_FAST
 
-nest_asyncio.apply()
+model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
+
 from langchain_community.document_loaders import WebBaseLoader
 from core.sources import ss
+
+nest_asyncio.apply()
 
 
 def load_web_page(urls: list[str]) -> str:
@@ -36,10 +41,8 @@ def research(query: str) -> str:
     return web_content if web_content else "No content found on the provided URLs."
 
 
-from langgraph.prebuilt import create_react_agent
-
 research_agent = create_react_agent(
-    model="openai:gpt-4.1-nano",
+    model=model,
     tools=[research],
     prompt=(
         "You are a research agent.\n\n"

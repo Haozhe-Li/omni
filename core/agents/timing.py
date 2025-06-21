@@ -22,9 +22,12 @@ def get_current_time(timezone: str) -> str:
 
 
 from langgraph.prebuilt import create_react_agent
+from core.globalvaris import OPENAI_CHAT_MODEL_FAST
+
+model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
 
 timing_agent = create_react_agent(
-    model="openai:gpt-4.1-nano",
+    model=model,
     tools=[get_current_time],
     prompt=(
         "You are a timing agent. You can calculate current time globally. \n\n"
