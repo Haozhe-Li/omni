@@ -7,6 +7,7 @@ import json
 from typing import List, Dict
 
 from core.get_suggestion import SuggestionAgent
+from core.sources import ss
 
 # allow all cors
 from fastapi.middleware.cors import CORSMiddleware
@@ -74,6 +75,10 @@ async def stream_endpoint(input_query: QueryModel):
                             yield f"data: {json.dumps({'tool': message_part})}\n\n"
 
             # Send a completion message
+            sourses = ss.get_sources()
+            if sourses:
+                yield f"data: {json.dumps({'sources': sourses})}\n\n"
+                ss.clear_sources()
             yield f"data: {json.dumps({'content': '[DONE]'})}\n\n"
         except Exception as e:
             error_message = f"Error processing request: {str(e)}"

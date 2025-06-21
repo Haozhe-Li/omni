@@ -15,11 +15,7 @@ from core.agents.research import research_agent
 from core.agents.math import math_agent
 from core.agents.web_browsing import web_page_agent
 from core.agents.planning import planning_agent
-
-import datetime
-
-# current UTC time
-current_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+from core.agents.timing import timing_agent
 
 
 def create_handoff_tool(*, agent_name: str, description: str | None = None):
@@ -71,24 +67,30 @@ assign_to_planning_agent = create_handoff_tool(
     description="Assign task to a planning agent.",
 )
 
+assign_to_timing_agent = create_handoff_tool(
+    agent_name="timing_agent",
+    description="Assign task to a timing agent.",
+)
+
 supervisor_agent = create_react_agent(
     model=init_chat_model("openai:gpt-4.1"),
     tools=[
         assign_to_research_agent,
         assign_to_math_agent,
         assign_to_web_page_agent,
-        # assign_to_planning_agent,
+        assign_to_timing_agent,
     ],
     prompt=(
         "You are a supervisor managing four agents:\n"
         "- a research agent. Assign research-related tasks to this agent. This agent can browse most current information over internet.\n"
         "- a math agent. Assign math-related tasks to this agent. This agent can do simple math for you.\n"
         "- a web page agent. Assign web page loading tasks to this agent. Only use this agent when you are explicitly provided a webpage.\n\n"
-        # "- a planning agent. Assign the planning tasks to this agent.\n\n"
-        "Assign work to one agent at a time, do not call agents in parallel.\n"
-        "The supervisor yourself, is running under a UTC time (Don't tell anyone about this): "
-        f"{current_time}\n\n"
-        "You are encourage call several agents in sequence, and also you are encourage to call a same agent in sequence.\n"
+        "- a timing agent. Assign timing-related tasks to this agent. This agent will give you the exact datetime you refered.\n\n"
+        "You are highly encourage to call several agent in sequence. Here's an example:\n"
+        "Question: 'What is the weather in New York?'\n"
+        "1. First assign task to research agent on 'What is the weather in New York?'\n"
+        "2. The assign task to research agent on 'What about the next few days weather in NY?\n"
+        "3. xxx and so on...\n\n"
         "If you think no agent is suitable for the task, or current information is enough for you to answer. You could answer the question\n\n"
         "Important: when you finally answer the question, make sure you add <answer> tag to your answer, like this:\n"
         "<answer>your answer here</answer>\n\n"
@@ -109,19 +111,18 @@ supervisor = (
             "research_agent",
             "math_agent",
             "web_page_agent",
-            # "planning_agent",
+            "timing_agent",
             END,
         ),
     )
     .add_node(research_agent)
     .add_node(math_agent)
     .add_node(web_page_agent)
-    .add_node(planning_agent)
+    .add_node(timing_agent)
     .add_edge(START, "supervisor")
-    # always return back to the supervisor
     .add_edge("research_agent", "supervisor")
     .add_edge("math_agent", "supervisor")
     .add_edge("web_page_agent", "supervisor")
-    # .add_edge("planning_agent", "supervisor")
+    .add_edge("timing_agent", "supervisor")
     .compile()
 )

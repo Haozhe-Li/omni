@@ -3,11 +3,11 @@ import nest_asyncio
 
 nest_asyncio.apply()
 from langchain_community.document_loaders import WebBaseLoader
+from core.sources import ss
 
 
 def load_web_page(urls: list[str]) -> str:
     """Load a web page and return its content."""
-    print("loading urls:", urls)
     loader = WebBaseLoader(urls)
     documents = loader.load()
     return documents
@@ -26,6 +26,12 @@ def research(query: str) -> str:
     if not search_results:
         return "No search results found."
     urls = [result["link"] for result in search_results]
+    # assign sources variable, sources is a list of key: value pairs
+    sources = [
+        {"url": url, "title": result["title"]}
+        for url, result in zip(urls, search_results)
+    ]
+    ss.set_sources(sources)
     web_content = load_web_page(urls)
     return web_content if web_content else "No content found on the provided URLs."
 
@@ -38,7 +44,8 @@ research_agent = create_react_agent(
     prompt=(
         "You are a research agent.\n\n"
         "INSTRUCTIONS:\n"
-        "- Assist ONLY with research-related tasks, DO NOT do any math\n"
+        "- Assist ONLY with research-related tasks, DO NOT do anything else.\n"
+        "- If you are provided with a task similar to previous one, you must dive deeper, which means change your query to be more specific.\n"
         "- After you're done with your tasks, respond to the supervisor directly\n"
         "- Respond ONLY with the results of your work, do NOT include ANY other text."
         "- Respond your answer in <agent_response> tag\n"
