@@ -88,8 +88,13 @@ def clean_messages(messages: str):
     cleaned = messages.strip()
     import re
 
-    # use re to clean anything embeeded by = =
-    cleaned = re.sub(r"=+\s*[^=]+?\s*=+", "", cleaned)
+    # remove anything between 3!!!
+    cleaned = re.sub(
+        r"==================================.*?==================================",
+        "",
+        cleaned,
+        flags=re.DOTALL,
+    )
     return cleaned
 
 
@@ -106,4 +111,6 @@ def format_tool_messages(messages: str):
             return "Searching information over internet..."
         elif "web_page" in messages:
             return "Reading web page..."
+        elif "timing" in messages:
+            return "Getting current time now..."
     return messages.strip()

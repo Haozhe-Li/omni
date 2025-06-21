@@ -1,19 +1,19 @@
 import datetime
 
 
-def get_current_time(timezone: str) -> str:
+def get_current_time(timezone: int) -> str:
     """
     Get the current time in the specified timezone.
 
     Args:
-        timezone (str): The timezone to get the current time for.
+        timezone (int): The timezone to get the current time for. e.g. 8 for UTC+8, -5 for UTC-5.
 
     Returns:
         str: The current time in the specified timezone.
     """
     try:
         # Convert the timezone string to a datetime object
-        tz = datetime.timezone(datetime.timedelta(hours=int(timezone)))
+        tz = datetime.timezone(datetime.timedelta(hours=timezone))
         # Get the current time in that timezone
         current_time = datetime.datetime.now(tz)
         return current_time.strftime("%Y-%m-%d %H:%M:%S")

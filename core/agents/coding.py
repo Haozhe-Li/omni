@@ -14,7 +14,7 @@ coding_agent = create_react_agent(
         "- Assist ONLY with coding tasks\n"
         "- After you're done with your tasks, respond to the supervisor directly\n"
         "- Respond ONLY with the results of your work, do NOT include ANY other text."
-        "- Resond your answer in <agent_response> tag\n"
+        "- You must respond your answer in <agent_response> tag\n"
         "- In your response, make sure you include the code you wrote and the output of the code.\n"
         "- Put the code in markdown code block with the language specified as 'python'.\n"
     ),
