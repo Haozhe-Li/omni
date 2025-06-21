@@ -106,11 +106,13 @@ def format_tool_messages(messages: str):
         return messages[start:end].strip()
     elif "transfer_to_" in messages:
         if "math" in messages:
-            return "Math agent is thinking..."
+            return "Doing some math calculations..."
         elif "research" in messages:
             return "Searching information over internet..."
         elif "web_page" in messages:
             return "Reading web page..."
         elif "timing" in messages:
             return "Getting current time now..."
+        elif "coding" in messages:
+            return "Writing and compiling code..."
     return messages.strip()
