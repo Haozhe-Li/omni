@@ -1,7 +1,7 @@
 from langgraph.prebuilt import create_react_agent
-from core.globalvaris import OPENAI_CHAT_MODEL_FAST
+from core.globalvaris import GROQ_CHAT_MODEL_FAST
 
-model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
+model = f"groq:{GROQ_CHAT_MODEL_FAST}"
 
 from langchain_community.tools.riza.command import ExecPython
 
