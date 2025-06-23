@@ -54,20 +54,11 @@ async def stream_endpoint(input_query: QueryModel):
                     # Format each message part as a server-sent event
                     message_part = clean_messages(message_part)
                     if message_part:
-                        if (
-                            "<answer>" in message_part
-                            or "Name: supervisor" in message_part
-                        ):
-                            if "<answer>" in message_part:
-                                # cut only between <answer> and </answer>
-                                start = message_part.find("<answer>") + len("<answer>")
-                                end = message_part.find("</answer>")
-                                message_part = message_part[start:end].strip()
-                            else:
-                                # cut Name: supervisor at the beginning
-                                message_part = message_part.replace(
-                                    "Name: supervisor", ""
-                                ).strip()
+                        if "<answer>" in message_part:
+                            # cut only between <answer> and </answer>
+                            start = message_part.find("<answer>") + len("<answer>")
+                            end = message_part.find("</answer>")
+                            message_part = message_part[start:end].strip()
                             # Send as a data event
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         else:
