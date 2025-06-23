@@ -1,9 +1,9 @@
 from langgraph.prebuilt import create_react_agent
 
 from langchain_community.tools.riza.command import ExecPython
-from core.globalvaris import GROQ_CHAT_MODEL
+from core.llm_models import default_llm_models
 
-model = f"groq:{GROQ_CHAT_MODEL}"
+model = default_llm_models.coding_model
 
 coding_agent = create_react_agent(
     model=model,

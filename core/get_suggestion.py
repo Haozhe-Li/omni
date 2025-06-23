@@ -1,19 +1,10 @@
-from langchain_openai import ChatOpenAI
-from langchain_groq import ChatGroq
 from core.globalvaris import *
-
-model = ChatOpenAI(model=OPENAI_CHAT_MODEL_FAST).with_structured_output(
-    method="json_mode"
-)
-
-groq_model = ChatGroq(model=GROQ_CHAT_MODEL_FAST).with_structured_output(
-    method="json_mode"
-)
+from core.llm_models import default_llm_models
 
 
 class SuggestionAgent:
     def __init__(self):
-        self.model = groq_model
+        self.model = default_llm_models.suggestion_model
         self.welcome_prompt = """
 You are a suggestion agent. Your task is to generate 4 questions that user might wanna be interested in.
 You MUST use the same language as the question.

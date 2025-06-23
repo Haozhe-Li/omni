@@ -1,10 +1,10 @@
-from langchain.chat_models import init_chat_model
 from typing import Annotated
 from langchain_core.tools import tool, InjectedToolCallId
 from langgraph.prebuilt import InjectedState
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.types import Command
 from langgraph.prebuilt import create_react_agent
+from core.llm_models import default_llm_models
 
 # import sys
 
@@ -79,7 +79,7 @@ assign_to_coding_agent = create_handoff_tool(
 )
 
 supervisor_agent = create_react_agent(
-    model=init_chat_model("openai:gpt-4.1"),
+    model=default_llm_models.supervisor_model,
     tools=[
         assign_to_research_agent,
         assign_to_math_agent,

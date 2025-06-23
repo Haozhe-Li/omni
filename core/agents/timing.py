@@ -1,4 +1,8 @@
 import datetime
+from core.llm_models import default_llm_models
+from langgraph.prebuilt import create_react_agent
+
+model = default_llm_models.timing_model
 
 
 def get_current_time(timezone: int) -> str:
@@ -20,11 +24,6 @@ def get_current_time(timezone: int) -> str:
     except ValueError:
         return "Invalid timezone format. Please use an integer offset from UTC."
 
-
-from langgraph.prebuilt import create_react_agent
-from core.globalvaris import GROQ_CHAT_MODEL_FAST
-
-model = f"groq:{GROQ_CHAT_MODEL_FAST}"
 
 timing_agent = create_react_agent(
     model=model,

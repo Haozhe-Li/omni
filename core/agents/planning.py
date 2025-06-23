@@ -1,7 +1,7 @@
 from langgraph.prebuilt import create_react_agent
-from core.globalvaris import GROQ_CHAT_MODEL_FAST
+from core.llm_models import default_llm_models
 
-model = f"groq:{GROQ_CHAT_MODEL_FAST}"
+model = default_llm_models.planning_model
 
 planning_agent = create_react_agent(
     model=model,

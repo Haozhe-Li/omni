@@ -1,7 +1,7 @@
 from langgraph.prebuilt import create_react_agent
-from core.globalvaris import GROQ_CHAT_MODEL_FAST
+from core.llm_models import default_llm_models
 
-model = f"groq:{GROQ_CHAT_MODEL_FAST}"
+model = default_llm_models.math_model
 
 from langchain_community.tools.riza.command import ExecPython
 

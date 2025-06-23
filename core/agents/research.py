@@ -1,9 +1,9 @@
 from langchain_community.utilities import GoogleSerperAPIWrapper
 import nest_asyncio
+from core.llm_models import default_llm_models
 from langgraph.prebuilt import create_react_agent
-from core.globalvaris import GROQ_CHAT_MODEL_FAST
 
-model = f"groq:{GROQ_CHAT_MODEL_FAST}"
+model = default_llm_models.research_model
 
 from langchain_community.document_loaders import WebBaseLoader
 from core.sources import ss
