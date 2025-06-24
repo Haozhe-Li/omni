@@ -55,11 +55,12 @@ async def stream_endpoint(input_query: QueryModel):
                     message_part = clean_messages(message_part)
                     if message_part:
                         print(message_part)
-                        if "<answer>" in message_part:
-                            # cut only between <answer> and </answer>
-                            start = message_part.find("<answer>") + len("<answer>")
-                            end = message_part.find("</answer>")
-                            message_part = message_part[start:end].strip()
+                        if "Name: summarizing_agent" in message_part:
+                            # cut summarizing_agent messages
+                            message_part = message_part.split(
+                                "Name: summarizing_agent"
+                            )[-1]
+                            message_part = message_part.strip()
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         else:
                             message_part = format_tool_messages(message_part)

@@ -43,7 +43,7 @@ class LLMModels:
             self.suggestion_model = ChatGroq(
                 model=GROQ_CHAT_MODEL_ULTRA_FAST
             ).with_structured_output(method="json_mode")
-            self.summarizing_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
+            self.summarizing_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.weather_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
 
 
