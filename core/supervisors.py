@@ -17,6 +17,7 @@ from core.agents.web_browsing import web_page_agent
 from core.agents.planning import planning_agent
 from core.agents.timing import timing_agent
 from core.agents.coding import coding_agent
+from core.agents.summarizing import summarizing_agent
 
 
 def create_handoff_tool(*, agent_name: str, description: str | None = None):
@@ -78,15 +79,21 @@ assign_to_coding_agent = create_handoff_tool(
     description="Assign task to a coding agent.",
 )
 
+assign_to_summarizing_agent = create_handoff_tool(
+    agent_name="summarizing_agent",
+    description="Assign task to a summarizing agent.",
+)
+tools = [
+    assign_to_research_agent,
+    assign_to_math_agent,
+    assign_to_web_page_agent,
+    assign_to_timing_agent,
+    assign_to_coding_agent,
+    assign_to_summarizing_agent,
+]
 supervisor_agent = create_react_agent(
     model=default_llm_models.supervisor_model,
-    tools=[
-        assign_to_research_agent,
-        assign_to_math_agent,
-        assign_to_web_page_agent,
-        assign_to_timing_agent,
-        assign_to_coding_agent,
-    ],
+    tools=tools,
     prompt=(
         "ASSIGN TASKS TO AGENTS\n\n"
         "You are a supervisor managing four agents:\n"
@@ -95,16 +102,11 @@ supervisor_agent = create_react_agent(
         "- a web page agent. Assign web page loading tasks to this agent. Only use this agent when you are explicitly provided a webpage.\n\n"
         "- a timing agent. Assign timing-related tasks to this agent. This agent will give you the exact datetime you refered.\n\n"
         "- a coding agent. Assign coding-related tasks to this agent. This agent can write code and run code with output for you.\n\n"
-        "You are highly encourage to call several agent in sequence.\n"
-        "If you think no agent is suitable for the task, or current information is enough for you to answer. You could answer the question\n\n"
-        "GENERATE ANSWERS\n\n"
-        "You should answer questions in markdown format. If you were given any code, make sure you put the code in a code block.\n"
-        "When answering questions, make sure you include all the information you have gathered from the agents.\n"
-        "Respond no less than 100 words, and no more than 500 words unless user specify your word count.\n"
-        "Do not add any citations or references, use those information without citing anything.\n"
-        "Important: when you finally answer the question, make sure you add <answer> tag to your answer, like this:\n"
-        "<answer>your answer in markdown</answer>\n\n"
-        "ONLY DO THIS when you are sure you have enough information to answer the question.\n"
+        "- a summarizing agent. Assign summarizing tasks to this agent. This agent will summarize the results of all agents and give you a final answer.\n\n"
+        "IMPORTANT: \n"
+        "As the supervisor, you should not answer the questions directly.You should always use summarizing agent to summarize the results of all agents and give a final answer.\n"
+        "If you think the task is way to simple, then you can directly assign the task to summarizing agent.\n"
+        "Pipeline: you understand the task --> assign to (research_agent, math_agent, web_page_agent, timing_agent, coding_agent) [this could be optional] --> assign to (research_agent, math_agent, web_page_agent, timing_agent, coding_agent) [this could be optional] --> summarizing_agent\n\n"
     ),
     name="supervisor",
 )
@@ -123,7 +125,7 @@ supervisor = (
             "web_page_agent",
             "timing_agent",
             "coding_agent",
-            END,
+            "summarizing_agent",
         ),
     )
     .add_node(research_agent)
@@ -131,11 +133,14 @@ supervisor = (
     .add_node(web_page_agent)
     .add_node(timing_agent)
     .add_node(coding_agent)
+    .add_node(summarizing_agent)
     .add_edge(START, "supervisor")
     .add_edge("research_agent", "supervisor")
     .add_edge("math_agent", "supervisor")
     .add_edge("web_page_agent", "supervisor")
     .add_edge("timing_agent", "supervisor")
     .add_edge("coding_agent", "supervisor")
+    # .add_edge("supervisor", "summarizing_agent")
+    .add_edge("summarizing_agent", END)
     .compile()
 )

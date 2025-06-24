@@ -29,9 +29,10 @@ class LLMModels:
             self.suggestion_model = ChatOpenAI(
                 model=OPENAI_CHAT_MODEL_ULTRA_FAST
             ).with_structured_output(method="json_mode")
+            self.summarizing_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
         else:
             print("Using Groq models")
-            self.supervisor_model = init_chat_model(GROQ_CHAT_MODEL)
+            self.supervisor_model = init_chat_model(f"openai:{OPENAI_CHAT_MODEL}")
             self.research_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.math_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.web_page_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
@@ -41,6 +42,7 @@ class LLMModels:
             self.suggestion_model = ChatGroq(
                 model=GROQ_CHAT_MODEL_ULTRA_FAST
             ).with_structured_output(method="json_mode")
+            self.summarizing_model = f"groq:{GROQ_CHAT_MODEL}"
 
 
 default_llm_models = LLMModels()
