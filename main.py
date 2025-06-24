@@ -62,6 +62,10 @@ async def stream_endpoint(input_query: QueryModel):
                             )[-1]
                             message_part = message_part.strip()
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
+                        elif "Name: supervisor" in message_part:
+                            message_part = message_part.split("Name: supervisor")[-1]
+                            message_part = message_part.strip()
+                            yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         else:
                             message_part = format_tool_messages(message_part)
                             yield f"data: {json.dumps({'tool': message_part})}\n\n"
@@ -74,7 +78,8 @@ async def stream_endpoint(input_query: QueryModel):
             yield f"data: {json.dumps({'content': '[DONE]'})}\n\n"
         except Exception as e:
             error_message = f"Error processing request: {str(e)}"
-            yield f"data: {json.dumps({'error': error_message})}\n\n"
+            print(error_message)
+            yield f"data: {json.dumps({'answer': "Sorry, there's something went wrong."})}\n\n"
 
     return StreamingResponse(
         response_generator(),

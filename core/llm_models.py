@@ -9,8 +9,8 @@ OPENAI_CHAT_MODEL_ULTRA_FAST = "gpt-4.1-nano"
 OPENAI_REASONING_MODEL = "o"
 
 GROQ_CHAT_MODEL_ULTRA_FAST = "llama-3.1-8b-instant"
-GROQ_CHAT_MODEL_FAST = "meta-llama/llama-4-maverick-17b-128e-instruct"
-GROQ_CHAT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+GROQ_CHAT_MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct"
+GROQ_CHAT_MODEL_FAST = "meta-llama/llama-4-scout-17b-16e-instruct"
 GROQ_REASONING_MODEL = "deepseek-r1-distill-llama-70b"
 
 
