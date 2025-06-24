@@ -117,4 +117,6 @@ def format_tool_messages(messages: str):
             return "Writing and compiling code..."
         elif "summarizing" in messages:
             return "Getting ready your answer..."
+        elif "weather" in messages:
+            return "Getting current weather information..."
     return messages.strip()

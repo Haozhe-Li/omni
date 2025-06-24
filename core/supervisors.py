@@ -18,6 +18,7 @@ from core.agents.planning import planning_agent
 from core.agents.timing import timing_agent
 from core.agents.coding import coding_agent
 from core.agents.summarizing import summarizing_agent
+from core.agents.weather import weather_agent
 
 
 def create_handoff_tool(*, agent_name: str, description: str | None = None):
@@ -83,6 +84,11 @@ assign_to_summarizing_agent = create_handoff_tool(
     agent_name="summarizing_agent",
     description="Assign task to a summarizing agent.",
 )
+
+assign_to_weather_agent = create_handoff_tool(
+    agent_name="weather_agent",
+    description="Assign task to a weather agent.",
+)
 tools = [
     assign_to_research_agent,
     assign_to_math_agent,
@@ -90,6 +96,7 @@ tools = [
     assign_to_timing_agent,
     assign_to_coding_agent,
     assign_to_summarizing_agent,
+    assign_to_weather_agent,
 ]
 supervisor_agent = create_react_agent(
     model=default_llm_models.supervisor_model,
@@ -102,6 +109,7 @@ supervisor_agent = create_react_agent(
         "- a web page agent. Assign web page loading tasks to this agent. Only use this agent when you are explicitly provided a webpage.\n\n"
         "- a timing agent. Assign timing-related tasks to this agent. This agent will give you the exact datetime you refered.\n\n"
         "- a coding agent. Assign coding-related tasks to this agent. This agent can write code and run code with output for you.\n\n"
+        "- a weather agent. Assign weather-related tasks to this agent. This agent can provide you the current weather information for a given location.\n\n"
         "- a summarizing agent. Assign summarizing tasks to this agent. This agent will summarize the results of all agents and give you a final answer.\n\n"
         "IMPORTANT: \n"
         "As the supervisor, you should not answer the questions directly.You should always use summarizing agent to summarize the results of all agents and give a final answer.\n"
@@ -126,6 +134,7 @@ supervisor = (
             "timing_agent",
             "coding_agent",
             "summarizing_agent",
+            "weather_agent",
         ),
     )
     .add_node(research_agent)
@@ -134,13 +143,14 @@ supervisor = (
     .add_node(timing_agent)
     .add_node(coding_agent)
     .add_node(summarizing_agent)
+    .add_node(weather_agent)
     .add_edge(START, "supervisor")
     .add_edge("research_agent", "supervisor")
     .add_edge("math_agent", "supervisor")
     .add_edge("web_page_agent", "supervisor")
     .add_edge("timing_agent", "supervisor")
     .add_edge("coding_agent", "supervisor")
-    # .add_edge("supervisor", "summarizing_agent")
+    .add_edge("weather_agent", "supervisor")
     .add_edge("summarizing_agent", END)
     .compile()
 )
