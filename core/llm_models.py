@@ -16,7 +16,7 @@ GROQ_REASONING_MODEL = "deepseek-r1-distill-llama-70b"
 
 class LLMModels:
     def __init__(self):
-        preset = os.getenv("LLM_MODEL_PRESET", "groq")
+        preset = os.getenv("LLM_MODEL_PRESET", "openai")
         if preset == "openai":
             print("Using OpenAI models")
             self.supervisor_model = init_chat_model(f"openai:{OPENAI_CHAT_MODEL}")
