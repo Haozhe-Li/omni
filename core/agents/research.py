@@ -2,8 +2,9 @@ from langchain_community.utilities import GoogleSerperAPIWrapper
 import nest_asyncio
 from core.llm_models import default_llm_models
 from langgraph.prebuilt import create_react_agent
+from langchain.chat_models import init_chat_model
 
-model = default_llm_models.research_model
+model = init_chat_model(default_llm_models.research_model)
 
 from langchain_community.document_loaders import WebBaseLoader
 from core.sources import ss
@@ -20,7 +21,7 @@ def load_web_page(urls: list[str]) -> str:
 
 def web_search(query: str) -> str:
     """Perform a web search using Google Serper API."""
-    search = GoogleSerperAPIWrapper(k=3)
+    search = GoogleSerperAPIWrapper(k=5)
     results = search.results(query)
     return results.get("organic", [])
 
@@ -33,22 +34,36 @@ def research(query: str) -> str:
     urls = [result["link"] for result in search_results]
     # assign sources variable, sources is a list of key: value pairs
     sources = [
-        {"url": url, "title": result["title"]}
+        {"url": url, "title": result["title"], "snippet": result["snippet"]}
         for url, result in zip(urls, search_results)
     ]
     ss.set_sources(sources)
-    web_content = load_web_page(urls)
-    return web_content if web_content else "No content found on the provided URLs."
+    print(f"Sources: {sources}")
+    # turn sources into a string
+    sources_str = "\n".join(
+        [f"{source['title']}: {source['url']}" for source in sources]
+    )
+    return sources_str
 
+
+research_tool = [research]
+
+# 强制调用名为 "research" 的工具
+bound_model = model.bind_tools(
+    research_tool,
+    tool_choice={
+        "type": "function",
+        "function": {"name": "research"},
+    },
+)
 
 research_agent = create_react_agent(
     model=model,
-    tools=[research],
+    tools=research_tool,
     prompt=(
         "You are a research agent.\n\n"
         "INSTRUCTIONS:\n"
         "- Assist ONLY with research-related tasks, DO NOT do anything else.\n"
-        "- If you are provided with a task similar to previous one, you must dive deeper, which means change your query to be more specific.\n"
         "- After you're done with your tasks, respond to the supervisor directly\n"
         "- Respond ONLY with the results of your work, do NOT include ANY other text."
         "- Respond your answer in <agent_response> tag\n"
