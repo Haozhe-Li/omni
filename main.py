@@ -79,7 +79,7 @@ async def stream_endpoint(input_query: QueryModel):
         except Exception as e:
             error_message = f"Error processing request: {str(e)}"
             print(error_message)
-            yield f"data: {json.dumps({'answer': "Sorry, there's something went wrong."})}\n\n"
+            yield f"data: {json.dumps({'answer': error_message})}\n\n"
 
     return StreamingResponse(
         response_generator(),
