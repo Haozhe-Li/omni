@@ -88,9 +88,9 @@ def clean_messages(messages: str):
     cleaned = messages.strip()
     import re
 
-    # remove anything between 3!!!
+    # remove content between brackets that are longer than 3 characters
     cleaned = re.sub(
-        r"==================================.*?==================================",
+        r"={4,}.*?={4,}",  # matches 4 or more equal signs, content, then 4 or more equal signs
         "",
         cleaned,
         flags=re.DOTALL,
@@ -99,6 +99,7 @@ def clean_messages(messages: str):
 
 
 def format_tool_messages(messages: str):
+    messages = clean_messages(messages)
     if "<agent_response>" in messages:
         # cut only between <agent_response> and </agent_response>
         start = messages.find("<agent_response>") + len("<agent_response>")

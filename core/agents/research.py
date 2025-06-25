@@ -3,6 +3,7 @@ import nest_asyncio
 from core.llm_models import default_llm_models
 from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
+from langchain_core.tools import tool
 
 model = init_chat_model(default_llm_models.research_model)
 
@@ -26,6 +27,7 @@ def web_search(query: str) -> str:
     return results.get("organic", [])
 
 
+@tool(return_direct=True)
 def research(query: str) -> str:
     """Perform a research task by loading web pages and performing a web search."""
     search_results = web_search(query)
@@ -38,12 +40,10 @@ def research(query: str) -> str:
         for url, result in zip(urls, search_results)
     ]
     ss.set_sources(sources)
-    print(f"Sources: {sources}")
-    # turn sources into a string
-    sources_str = "\n".join(
-        [f"{source['title']}: {source['url']}" for source in sources]
-    )
-    return sources_str
+    # concat all result snippet together as context
+    context = "\n\n".join(result["snippet"] for result in search_results)
+    print(context)
+    return context
 
 
 research_tool = [research]
@@ -58,7 +58,7 @@ bound_model = model.bind_tools(
 )
 
 research_agent = create_react_agent(
-    model=model,
+    model=bound_model,
     tools=research_tool,
     prompt=(
         "You are a research agent.\n\n"
