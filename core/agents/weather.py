@@ -1,10 +1,13 @@
 from langgraph.prebuilt import create_react_agent
 from core.llm_models import default_llm_models
 from langchain_community.utilities import OpenWeatherMapAPIWrapper
+from langchain_core.tools import tool
+from langchain.chat_models import init_chat_model
 
-model = default_llm_models.weather_model
+model = init_chat_model(default_llm_models.weather_model)
 
 
+@tool(return_direct=True)
 def get_current_weather(location: str) -> str:
     """
     Get the current weather for a specified location.
@@ -19,9 +22,20 @@ def get_current_weather(location: str) -> str:
     return str(weather.run(location))
 
 
+weather_tool = [get_current_weather]
+
+# 强制调用名为 "weather" 的工具
+bound_model = model.bind_tools(
+    weather_tool,
+    tool_choice={
+        "type": "function",
+        "function": {"name": "get_current_weather"},
+    },
+)
+
 weather_agent = create_react_agent(
-    model=model,
-    tools=[get_current_weather],
+    model=bound_model,
+    tools=weather_tool,
     prompt=(
         "You are a weather assistant. Your task is to provide accurate weather information for locations.\n\n"
         "INSTRUCTIONS:\n"
