@@ -20,24 +20,28 @@ def load_web_page(urls: list[str]) -> str:
     return documents
 
 
-def web_search(query: str) -> str:
+def web_search(querys: list[str]) -> str:
     """Perform a web search using Google Serper API."""
-    search = GoogleSerperAPIWrapper(k=5)
-    results = search.results(query)
-    return results.get("organic", [])
+    print(f"Performing web search for queries: {querys}")
+    search = GoogleSerperAPIWrapper(k=3)
+    results = []
+    for query in querys:
+        result = search.results(query)
+        results.extend(result.get("organic", []))
+    return results
 
 
 @tool(return_direct=True)
-def research(query: str) -> str:
+def research(querys: list[str]) -> str:
     """Research a topic using web search and return the context.
 
     Args:
-        query (str): The research query.
+        querys (list[str]): A list of search queries.
 
     Returns:
         str:  A summary of the search results.
     """
-    search_results = web_search(query)
+    search_results = web_search(querys[:5])  # Limit to the first 5 queries
     if not search_results:
         return "No search results found."
     urls = [result["link"] for result in search_results]
@@ -54,7 +58,6 @@ def research(query: str) -> str:
 
 research_tool = [research]
 
-# 强制调用名为 "research" 的工具
 bound_model = model.bind_tools(
     research_tool,
     tool_choice={
@@ -67,12 +70,14 @@ research_agent = create_react_agent(
     model=bound_model,
     tools=research_tool,
     prompt=(
-        "You are a research agent.\n\n"
+        "You are a research agent. You could call `research` to perform a web search.\n\n"
         "INSTRUCTIONS:\n"
+        "- When calling the `research` tool, provide a list of search queries. Queries should no less than 3 and no more than 5\n"
+        "- The queries should be from broad to specific.\n"
+        "- For example, if the user asks about 'climate change', you might start with 'climate change', then 'effects of climate change', and finally 'climate change impact on polar bears'. and so on\n"
         "- Assist ONLY with research-related tasks, DO NOT do anything else.\n"
         "- After you're done with your tasks, respond to the supervisor directly\n"
         "- Respond ONLY with the results of your work, do NOT include ANY other text."
-        "- Respond your answer in <agent_response> tag\n"
     ),
     name="research_agent",
 )
