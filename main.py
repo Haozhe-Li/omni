@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from core.supervisors import supervisor
+from core.light_agent import light
 from core.utils import pretty_yield_messages, clean_messages, format_tool_messages
 import json
 from typing import List, Dict
@@ -24,6 +25,7 @@ app.add_middleware(
 
 class QueryModel(BaseModel):
     messages: List[Dict[str, str]]
+    mode: str
 
 
 class SuggestionModel(BaseModel):
@@ -43,12 +45,15 @@ async def stream_endpoint(input_query: QueryModel):
     """
     # Use messages directly from input_query
     input_data = {"messages": input_query.messages}
+    mode = input_query.mode
+
+    activate_agent = light if mode == "light" else supervisor
 
     async def response_generator():
         try:
 
             # Stream responses from supervisor
-            for chunk in supervisor.stream(input_data):
+            for chunk in activate_agent.stream(input_data):
                 # Use pretty_yield_messages to format output
                 for message_part in pretty_yield_messages(chunk, last_message=True):
                     # Format each message part as a server-sent event
@@ -64,6 +69,11 @@ async def stream_endpoint(input_query: QueryModel):
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         elif "Name: supervisor" in message_part:
                             message_part = message_part.split("Name: supervisor")[-1]
+                            message_part = message_part.strip()
+                            yield f"data: {json.dumps({'answer': message_part})}\n\n"
+                        elif "Name: light_agent" in message_part:
+                            # cut light_agent messages
+                            message_part = message_part.split("Name: light_agent")[-1]
                             message_part = message_part.strip()
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         else:

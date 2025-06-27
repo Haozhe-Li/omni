@@ -29,7 +29,14 @@ def web_search(query: str) -> str:
 
 @tool(return_direct=True)
 def research(query: str) -> str:
-    """Perform a research task by loading web pages and performing a web search."""
+    """Research a topic using web search and return the context.
+
+    Args:
+        query (str): The research query.
+
+    Returns:
+        str:  A summary of the search results.
+    """
     search_results = web_search(query)
     if not search_results:
         return "No search results found."
@@ -42,7 +49,6 @@ def research(query: str) -> str:
     ss.set_sources(sources)
     # concat all result snippet together as context
     context = "\n\n".join(result["snippet"] for result in search_results)
-    print(context)
     return context
 
 
