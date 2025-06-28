@@ -26,6 +26,7 @@ app.add_middleware(
 class QueryModel(BaseModel):
     messages: List[Dict[str, str]]
     mode: str
+    location: str = None  # Optional location field for light agent queries
 
 
 class SuggestionModel(BaseModel):
@@ -46,6 +47,13 @@ async def stream_endpoint(input_query: QueryModel):
     # Use messages directly from input_query
     input_data = {"messages": input_query.messages}
     mode = input_query.mode
+    location = input_query.location
+    print(location)
+    if location:
+        query_str = input_query.messages[-1]["content"]
+        query_str = f"User's current location is {location}. Please use this information for personalization in weather and timing. However, if another specific location is mentioned in the query, use that instead. Below is the query: {query_str}"
+        input_data["messages"][-1]["content"] = query_str
+    print("Input Data:", input_data)
 
     activate_agent = light if mode == "light" else supervisor
 
