@@ -1,11 +1,12 @@
 import datetime
 from core.llm_models import default_llm_models
 from langgraph.prebuilt import create_react_agent
+from typing import Optional
 
 model = default_llm_models.timing_model
 
 
-def get_current_time(timezone: int) -> str:
+def get_current_time(timezone: Optional[int | str]) -> str:
     """
     Get the current time in the specified timezone.
 
@@ -16,7 +17,9 @@ def get_current_time(timezone: int) -> str:
         str: The current time in the specified timezone.
     """
     try:
-        # Convert the timezone string to a datetime object
+        if isinstance(timezone, str):
+            # Convert the timezone string to an integer
+            timezone = int(timezone)
         tz = datetime.timezone(datetime.timedelta(hours=timezone))
         # Get the current time in that timezone
         current_time = datetime.datetime.now(tz)
