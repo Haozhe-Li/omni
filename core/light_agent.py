@@ -6,11 +6,17 @@ from langchain_core.tools import tool
 from core.sources import ss
 
 
-def web_search(query: str) -> str:
+def web_search(querys: list[str]) -> str:
     """Perform a web search using Google Serper API."""
+    print(f"Performing web search for queries: {querys}")
     search = GoogleSerperAPIWrapper(k=3)
-    results = search.results(query)
-    return results.get("organic", [])
+    results = []
+    for query in querys:
+        result = search.results(query)
+        results.extend(result.get("organic", []))
+    answer_box = result.get("answerBox", "")
+    knowledge_graph = result.get("knowledgeGraph", {})
+    return results, answer_box, knowledge_graph
 
 
 def quick_search(query: str) -> str:
@@ -22,7 +28,7 @@ def quick_search(query: str) -> str:
     Returns:
         str: A summary of the search results.
     """
-    search_results = web_search(query)
+    search_results, answer_box, knowledge_graph = web_search([query])
     if not search_results:
         return "No search results found."
     urls = [result["link"] for result in search_results]
@@ -31,8 +37,29 @@ def quick_search(query: str) -> str:
         {"url": url, "title": result["title"], "snippet": result["snippet"]}
         for url, result in zip(urls, search_results)
     ]
-    ss.set_sources(sources)
     context = "\n\n".join(result["snippet"] for result in search_results)
+    if answer_box:
+        context = (
+            f"Answer from Google, refer this answer directly: {answer_box.get('answer')}\n\n"
+            + context
+        )
+        sources.append(
+            {
+                "url": answer_box.get("sourceLink", "N/A"),
+                "title": answer_box.get("title"),
+                "snippet": "",
+            }
+        )
+    if knowledge_graph:
+        context = f"Knowledge Graph: {knowledge_graph.get("description")}\n\n" + context
+        sources.append(
+            {
+                "url": knowledge_graph.get("descriptionLink", "N/A"),
+                "title": knowledge_graph.get("Apple", "N/A"),
+                "snippet": "",
+            }
+        )
+    ss.set_sources(sources)
     return context
 
 

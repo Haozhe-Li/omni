@@ -28,7 +28,9 @@ def web_search(querys: list[str]) -> str:
     for query in querys:
         result = search.results(query)
         results.extend(result.get("organic", []))
-    return results
+    answer_box = result.get("answerBox", "")
+    knowledge_graph = result.get("knowledgeGraph", {})
+    return results, answer_box, knowledge_graph
 
 
 @tool(return_direct=True)
@@ -41,7 +43,9 @@ def research(querys: list[str]) -> str:
     Returns:
         str:  A summary of the search results.
     """
-    search_results = web_search(querys[:5])  # Limit to the first 5 queries
+    search_results, answer_box, knowledge_graph = web_search(
+        querys[:5]
+    )  # Limit to the first 5 queries
     if not search_results:
         return "No search results found."
     urls = [result["link"] for result in search_results]
@@ -50,9 +54,30 @@ def research(querys: list[str]) -> str:
         {"url": url, "title": result["title"], "snippet": result["snippet"]}
         for url, result in zip(urls, search_results)
     ]
-    ss.set_sources(sources)
     # concat all result snippet together as context
     context = "\n\n".join(result["snippet"] for result in search_results)
+    if answer_box:
+        context = (
+            f"Answer from Google, refer this answer directly: {answer_box.get('answer')}\n\n"
+            + context
+        )
+        sources.append(
+            {
+                "url": answer_box.get("sourceLink", "N/A"),
+                "title": answer_box.get("title"),
+                "snippet": "",
+            }
+        )
+    if knowledge_graph:
+        context = f"Knowledge Graph: {knowledge_graph.get("description")}\n\n" + context
+        sources.append(
+            {
+                "url": knowledge_graph.get("descriptionLink", "N/A"),
+                "title": knowledge_graph.get("Apple", "N/A"),
+                "snippet": "",
+            }
+        )
+    ss.set_sources(sources)
     return context
 
 

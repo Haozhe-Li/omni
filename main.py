@@ -69,20 +69,29 @@ async def stream_endpoint(input_query: QueryModel):
                     if message_part:
                         print(message_part)
                         if "Name: summarizing_agent" in message_part:
-                            # cut summarizing_agent messages
                             message_part = message_part.split(
                                 "Name: summarizing_agent"
                             )[-1]
-                            message_part = message_part.strip()
+                            # extract part in <think></think>
+                            thinking_part = message_part.split("<think>")[-1]
+                            thinking_part = thinking_part.split("</think>")[0]
+                            yield f"data: {json.dumps({'tool': thinking_part})}\n\n"
+                            message_part = message_part.split("</think>")[-1].strip()
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         elif "Name: supervisor" in message_part:
                             message_part = message_part.split("Name: supervisor")[-1]
-                            message_part = message_part.strip()
+                            thinking_part = message_part.split("<think>")[-1]
+                            thinking_part = thinking_part.split("</think>")[0]
+                            yield f"data: {json.dumps({'tool': thinking_part})}\n\n"
+                            message_part = message_part.split("</think>")[-1].strip()
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         elif "Name: light_agent" in message_part:
                             # cut light_agent messages
                             message_part = message_part.split("Name: light_agent")[-1]
-                            message_part = message_part.strip()
+                            thinking_part = message_part.split("<think>")[-1]
+                            thinking_part = thinking_part.split("</think>")[0]
+                            yield f"data: {json.dumps({'tool': thinking_part})}\n\n"
+                            message_part = message_part.split("</think>")[-1].strip()
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         else:
                             message_part = format_tool_messages(message_part)
