@@ -69,7 +69,9 @@ def research(querys: list[str]) -> str:
             }
         )
     if knowledge_graph:
-        context = f"Knowledge Graph: {knowledge_graph.get("description")}\n\n" + context
+        context = (
+            f"Knowledge Graph: {knowledge_graph.get('description', '')}\n\n" + context
+        )
         sources.append(
             {
                 "url": knowledge_graph.get("descriptionLink", "N/A"),

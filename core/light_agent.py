@@ -40,18 +40,20 @@ def quick_search(query: str) -> str:
     context = "\n\n".join(result["snippet"] for result in search_results)
     if answer_box:
         context = (
-            f"Answer from Google, refer this answer directly: {answer_box.get('answer')}\n\n"
+            f"Answer from Google, refer this answer directly: {answer_box.get('answer', '')}\n\n"
             + context
         )
         sources.append(
             {
                 "url": answer_box.get("sourceLink", "N/A"),
-                "title": answer_box.get("title"),
+                "title": answer_box.get("title", "N/A"),
                 "snippet": "",
             }
         )
     if knowledge_graph:
-        context = f"Knowledge Graph: {knowledge_graph.get("description")}\n\n" + context
+        context = (
+            f"Knowledge Graph: {knowledge_graph.get('description', '')}\n\n" + context
+        )
         sources.append(
             {
                 "url": knowledge_graph.get("descriptionLink", "N/A"),
