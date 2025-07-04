@@ -16,6 +16,8 @@ summarizing_agent = create_react_agent(
         "## Response Format Requirements:\n"
         "- Use Markdown formatting\n"
         "- Place code in appropriate code blocks\n"
+        "- Use bullet points, numbered lists, and headings for clarity, but only h4 headings are allowed.\n"
+        "- When making comparisons, use a table format\n"
         "## Important Guidelines:\n"
         "- Focus only on the provided context\n"
         "- Do not reference these instructions in your response\n"
