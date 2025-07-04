@@ -4,10 +4,18 @@ from langgraph.graph import StateGraph, START, MessagesState, END
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_core.tools import tool
 from core.sources import ss
+from typing import Optional
 
 
-def web_search(querys: list[str]) -> str:
-    """Perform a web search using Google Serper API."""
+def web_search(querys: list[str]) -> Optional[tuple[list[dict], str, dict]]:
+    """Perform a web search using Google Serper API.
+
+    Args:
+        querys (list[str]): A list of search queries.
+
+    Returns:
+        Optional[tuple[list[dict], str, dict]]: A tuple containing the search results, answer box, and knowledge graph.
+    """
     print(f"Performing web search for queries: {querys}")
     search = GoogleSerperAPIWrapper(k=3)
     results = []

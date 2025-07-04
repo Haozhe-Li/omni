@@ -14,14 +14,20 @@ nest_asyncio.apply()
 
 
 def load_web_page(urls: list[str]) -> str:
-    """Load a web page and return its content."""
+    """Load a web page and return its content.
+
+    Args:
+        urls (list[str]): A list of URLs to load.
+
+    Returns:
+        str: The content of the web page.
+    """
     loader = WebBaseLoader(urls)
     documents = loader.load()
     return documents
 
 
-def web_search(querys: list[str]) -> str:
-    """Perform a web search using Google Serper API."""
+def web_search(querys: list[str]):
     print(f"Performing web search for queries: {querys}")
     search = GoogleSerperAPIWrapper(k=3)
     results = []

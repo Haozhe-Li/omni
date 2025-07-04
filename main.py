@@ -1,17 +1,14 @@
-from fastapi import FastAPI, HTTPException, Request
+import json
+from typing import List, Dict
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from core.supervisors import supervisor
 from core.light_agent import light
 from core.utils import pretty_yield_messages, clean_messages, format_tool_messages
-import json
-from typing import List, Dict
-
 from core.get_suggestion import SuggestionAgent
 from core.sources import ss
-
-# allow all cors
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Omni API", description="A REST API for the Omni supervisor system")
 app.add_middleware(
@@ -24,6 +21,12 @@ app.add_middleware(
 
 
 class QueryModel(BaseModel):
+    """Model representing a user query.
+
+    Args:
+        BaseModel (pydantic.BaseModel): The base model class from Pydantic.
+    """
+
     messages: List[Dict[str, str]]
     mode: str
     location: str = None  # Optional location field for light agent queries
@@ -31,21 +34,27 @@ class QueryModel(BaseModel):
 
 
 class SuggestionModel(BaseModel):
+    """Model representing a suggestion.
+
+    Args:
+        BaseModel (pydantic.BaseModel): The base model class from Pydantic.
+    """
+
     question: str
 
 
 @app.post("/stream")
-async def stream_endpoint(input_query: QueryModel):
+async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
     """
-    Stream the response from the supervisor system.
+    Stream responses from the supervisor system based on the user query.
 
     Args:
-        input_query: The query data containing the user's messages
+        input_query (QueryModel): The query data containing the user's messages, mode, location,
+                                  and preferred language.
 
     Returns:
-        A streaming response with the supervisor's outputs
+        StreamingResponse: A streaming response with the supervisor's outputs.
     """
-    # Use messages directly from input_query
     input_data = {"messages": input_query.messages}
     mode = input_query.mode
     location = input_query.location
@@ -71,8 +80,12 @@ async def stream_endpoint(input_query: QueryModel):
     activate_agent = light if mode == "light" else supervisor
 
     async def response_generator():
-        try:
+        """Generate a streaming response from the supervisor system.
 
+        Yields:
+            str: A server-sent event containing the supervisor's output.
+        """
+        try:
             # Stream responses from supervisor
             for chunk in activate_agent.stream(input_data):
                 # Use pretty_yield_messages to format output
@@ -133,12 +146,12 @@ async def stream_endpoint(input_query: QueryModel):
 
 
 @app.post("/suggestion")
-async def suggest_endpoint(suggestion_model: SuggestionModel):
+async def suggest_endpoint(suggestion_model: SuggestionModel) -> str:
     """
     Get a suggestion from the SuggestionAgent.
 
     Args:
-        input_query: The query data containing the user's messages
+        suggestion_model (SuggestionModel): The model containing the user's question.
 
     Returns:
         A JSON response with the suggestion
@@ -154,6 +167,10 @@ async def suggest_endpoint(suggestion_model: SuggestionModel):
 
 
 @app.get("/health")
-async def health_check():
-    """Simple health check endpoint"""
+async def health_check() -> dict:
+    """Check the health status of the service.
+
+    Returns:
+        dict: A dictionary containing the health status.
+    """
     return {"status": "healthy"}
