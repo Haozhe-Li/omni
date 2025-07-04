@@ -27,6 +27,7 @@ class QueryModel(BaseModel):
     messages: List[Dict[str, str]]
     mode: str
     location: str = None  # Optional location field for light agent queries
+    preferredLanguage: str = None  # Optional preferred language field
 
 
 class SuggestionModel(BaseModel):
@@ -48,10 +49,23 @@ async def stream_endpoint(input_query: QueryModel):
     input_data = {"messages": input_query.messages}
     mode = input_query.mode
     location = input_query.location
-    print(location)
+    preferred_language = input_query.preferredLanguage
+    system_str = ""
     if location:
-        system_str = f"User's current location is {location}. Please use this information for personalization in weather and timing. However, if another specific location is mentioned in the query, use that instead."
+        system_str += f"""
+        ## Location Personalization:
+        User's current location is {location}. Please use this information for personalization in weather and timing. 
+        However, if another specific location is mentioned in the query, use that instead."""
+    if preferred_language:
+        system_str += f"""
+        ## Preferred Language Personalization:
+        User's preferred language is {preferred_language}. 
+        Please use this information for personalization in language and tone, make sure your final response is in {preferred_language}."""
+    else:
+        system_str += """Make sure you follow the user's language when responding."""
+    if system_str:
         input_data["messages"].insert(0, {"role": "system", "content": system_str})
+
     print("Input Data:", input_data)
 
     activate_agent = light if mode == "light" else supervisor
