@@ -1,5 +1,6 @@
-from langchain.chat_models import init_chat_model
 import os
+
+from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 
@@ -15,6 +16,10 @@ GROQ_REASONING_MODEL = "qwen/qwen3-32b"
 
 
 class LLMModels:
+    """
+    A class to encapsulate the various LLM models used in the application.
+    """
+
     def __init__(self):
         preset = os.getenv("LLM_MODEL_PRESET", "groq")
         if preset == "openai":
@@ -41,8 +46,11 @@ class LLMModels:
             self.planning_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.timing_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.coding_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
-            self.suggestion_model = ChatGroq(
-                model=GROQ_CHAT_MODEL_FAST
+            # self.suggestion_model = ChatGroq(
+            #     model=GROQ_CHAT_MODEL_FAST
+            # ).with_structured_output(method="json_mode")
+            self.suggestion_model = ChatOpenAI(
+                model=OPENAI_CHAT_MODEL_ULTRA_FAST
             ).with_structured_output(method="json_mode")
             self.summarizing_model = f"groq:{GROQ_REASONING_MODEL}"
             self.weather_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
