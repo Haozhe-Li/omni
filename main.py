@@ -1,4 +1,7 @@
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 from typing import List, Dict
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -10,6 +13,7 @@ from core.utils import pretty_yield_messages, clean_messages, format_tool_messag
 from core.get_suggestion import SuggestionAgent
 from core.sources import ss
 
+load_dotenv()
 app = FastAPI(title="Omni API", description="A REST API for the Omni supervisor system")
 app.add_middleware(
     CORSMiddleware,
@@ -146,16 +150,7 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
 
 
 @app.post("/suggestion")
-async def suggest_endpoint(suggestion_model: SuggestionModel) -> str:
-    """
-    Get a suggestion from the SuggestionAgent.
-
-    Args:
-        suggestion_model (SuggestionModel): The model containing the user's question.
-
-    Returns:
-        A JSON response with the suggestion
-    """
+async def suggest_endpoint(suggestion_model: SuggestionModel):
     input_data = suggestion_model.question
     suggestion_agent = SuggestionAgent()
     if not input_data or input_data.strip() == "":
