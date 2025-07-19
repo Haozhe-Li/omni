@@ -120,7 +120,7 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                             message_part = message_part.split("Name: light_agent")[-1]
                             thinking_part = message_part.split("<think>")[-1]
                             thinking_part = thinking_part.split("</think>")[0]
-                            yield f"data: {json.dumps({'tool': thinking_part})}\n\n"
+                            # yield f"data: {json.dumps({'tool': thinking_part})}\n\n"
                             message_part = message_part.split("</think>")[-1].strip()
                             yield f"data: {json.dumps({'answer': message_part})}\n\n"
                         else:
@@ -136,7 +136,8 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
         except Exception as e:
             error_message = f"Error processing request: {str(e)}"
             print(error_message)
-            yield f"data: {json.dumps({'answer': error_message})}\n\n"
+            res_error = """Sorry, something went wrong while processing your request. Please try again later."""
+            yield f"data: {json.dumps({'answer': res_error})}\n\n"
 
     return StreamingResponse(
         response_generator(),
