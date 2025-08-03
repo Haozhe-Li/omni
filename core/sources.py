@@ -4,12 +4,20 @@ class SourcesStore:
         self.sources = []
 
     def set_sources(self, sources: list[str]) -> None:
-        """Store the sources."""
-        # if self.sources is not None:
+        """Store the sources.
+
+        Args:
+            sources (list[str]): The list of source strings to store.
+        """
+        sources = list(set(sources))
         self.sources = sources
 
     def get_sources(self) -> list[str]:
-        """Retrieve the stored sources."""
+        """Retrieve the stored sources.
+
+        Returns:
+            list[str]: The list of stored source strings.
+        """
         return self.sources if hasattr(self, "sources") else []
 
     def clear_sources(self) -> None:
