@@ -3,20 +3,27 @@ class SourcesStore:
         """Initialize the SourcesStore with an empty list."""
         self.sources = []
 
-    def set_sources(self, sources: list[str]) -> None:
+    def set_sources(self, sources: list[dict]) -> None:
         """Store the sources.
 
         Args:
-            sources (list[str]): The list of source strings to store.
+            sources (list[dict]): The list of source dictionaries to store.
         """
-        sources = list(set(sources))
-        self.sources = sources
+        # Remove duplicates based on URL to avoid duplicate sources
+        seen_urls = set()
+        unique_sources = []
+        for source in sources:
+            url = source.get("url", "")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_sources.append(source)
+        self.sources = unique_sources
 
-    def get_sources(self) -> list[str]:
+    def get_sources(self) -> list[dict]:
         """Retrieve the stored sources.
 
         Returns:
-            list[str]: The list of stored source strings.
+            list[dict]: The list of stored source dictionaries.
         """
         return self.sources if hasattr(self, "sources") else []
 
