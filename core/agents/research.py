@@ -4,7 +4,6 @@ from core.llm_models import default_llm_models
 from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
-from functools import lru_cache
 
 model = init_chat_model(default_llm_models.research_model)
 
@@ -28,7 +27,6 @@ def load_web_page(urls: list[str]) -> str:
     return documents
 
 
-@lru_cache(maxsize=128)
 def web_search(
     querys: list[str], k: int = 3, tbs: str = ""
 ) -> tuple[list[dict], str, dict]:
