@@ -17,7 +17,7 @@ class SourcesStore:
             if url and url not in seen_urls:
                 seen_urls.add(url)
                 unique_sources.append(source)
-        if not self.sources:
+        if not hasattr(self, "sources") or not self.sources:
             self.sources = unique_sources
         else:
             self.sources.extend(unique_sources)
@@ -41,8 +41,7 @@ class SourcesStore:
 
     def clear_sources(self) -> None:
         """Clear the stored sources."""
-        if hasattr(self, "sources"):
-            del self.sources
+        self.sources = []
 
 
 ss = SourcesStore()
