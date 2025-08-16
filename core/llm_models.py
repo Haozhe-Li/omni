@@ -4,8 +4,8 @@ from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 
-OPENAI_CHAT_MODEL = "gpt-4.1"
-OPENAI_CHAT_MODEL_FAST = "gpt-4.1-mini"
+OPENAI_CHAT_MODEL = "openai/gpt-oss-120b"
+OPENAI_CHAT_MODEL_FAST = "openai/gpt-oss-20b"
 OPENAI_CHAT_MODEL_ULTRA_FAST = "gpt-4.1-nano"
 OPENAI_REASONING_MODEL = "o"
 
@@ -39,8 +39,8 @@ class LLMModels:
             self.light_agent_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
         else:
             print("Using Groq models")
-            self.supervisor_model = init_chat_model(f"openai:{OPENAI_CHAT_MODEL}")
-            self.research_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
+            self.supervisor_model = init_chat_model(f"groq:{OPENAI_CHAT_MODEL}")
+            self.research_model = f"groq:{OPENAI_CHAT_MODEL_FAST}"
             self.math_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.web_page_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.planning_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
