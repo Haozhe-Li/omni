@@ -40,17 +40,17 @@ def web_search(querys: list[str]):
 
 
 @tool(return_direct=True)
-def research(querys: list[str]) -> str:
+def research(query: str) -> str:
     """Research a topic using web search and return the context.
 
     Args:
-        querys (list[str]): A list of search queries.
+        query (str): The query to search for.
 
     Returns:
         str:  A summary of the search results.
     """
     search_results, answer_box, knowledge_graph = web_search(
-        querys[:5]
+        [query]  # Use the query directly for the search
     )  # Limit to the first 5 queries
     if not search_results:
         return "No search results found."
@@ -105,7 +105,7 @@ research_agent = create_react_agent(
     prompt=(
         "You are a research agent. You could call `research` to perform a web search.\n\n"
         "INSTRUCTIONS:\n"
-        "- When calling the `research` tool, provide a list of search queries. Queries should no less than 3 and no more than 5\n"
+        "- When calling the `research` tool, simply provide a query, and this query will be sent to Google to search for relevant information.\n"
         "- The queries should be from broad to specific.\n"
         "- For example, if the user asks about 'climate change', you might start with 'climate change', then 'effects of climate change', and finally 'climate change impact on polar bears'. and so on\n"
         "- Assist ONLY with research-related tasks, DO NOT do anything else.\n"
