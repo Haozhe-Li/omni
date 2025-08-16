@@ -71,11 +71,18 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
         However, if another specific location is mentioned in the query, use that instead."""
     if preferred_language:
         system_str += f"""
-        ## Preferred Language Personalization:
-        User's preferred language is {preferred_language}. 
-        Please use this information for personalization in language and tone, make sure your final response is in {preferred_language}."""
+        ## CRITICAL LANGUAGE REQUIREMENT:
+        "**ALWAYS respond in the SAME language as users preference language {preferred_language}** This is absolutely critical.
+        The user will only understand your response if it matches their language.
+        """
     else:
-        system_str += """Make sure you follow the user's language when responding."""
+        system_str += """
+        ## CRITICAL LANGUAGE REQUIREMENT:\n"
+        "**ALWAYS respond in the SAME language as the user's input.** This is absolutely critical:\n"
+        "- If user writes in English → respond in English\n"
+        "- If user writes in Chinese → respond in Chinese\n"
+        "- If user writes in any other language → respond in that language\n"
+        "The user will only understand your response if it matches their language.\n\n"""
     if system_str:
         input_data["messages"].insert(0, {"role": "system", "content": system_str})
 
