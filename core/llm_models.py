@@ -46,15 +46,15 @@ class LLMModels:
             self.planning_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.timing_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.coding_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
-            # self.suggestion_model = ChatGroq(
-            #     model=GROQ_CHAT_MODEL_FAST
-            # ).with_structured_output(method="json_mode")
-            self.suggestion_model = ChatOpenAI(
-                model=OPENAI_CHAT_MODEL_ULTRA_FAST
+            self.suggestion_model = ChatGroq(
+                model=GROQ_CHAT_MODEL_FAST
             ).with_structured_output(method="json_mode")
+            # self.suggestion_model = ChatOpenAI(
+            #     model=OPENAI_CHAT_MODEL_ULTRA_FAST
+            # ).with_structured_output(method="json_mode")
             self.summarizing_model = f"groq:{GROQ_REASONING_MODEL}"
             self.weather_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
-            self.light_agent_model = f"groq:{GROQ_REASONING_MODEL}"
+            self.light_agent_model = f"groq:{OPENAI_CHAT_MODEL_FAST}"
 
 
 default_llm_models = LLMModels()
