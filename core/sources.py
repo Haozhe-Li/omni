@@ -17,7 +17,19 @@ class SourcesStore:
             if url and url not in seen_urls:
                 seen_urls.add(url)
                 unique_sources.append(source)
-        self.sources += unique_sources
+        if not self.sources:
+            self.sources = unique_sources
+        else:
+            self.sources.extend(unique_sources)
+            # Ensure sources are unique after extending
+            seen_urls = set()
+            self.sources = [
+                source
+                for source in self.sources
+                if not (
+                    source.get("url") in seen_urls or seen_urls.add(source.get("url"))
+                )
+            ]
 
     def get_sources(self) -> list[dict]:
         """Retrieve the stored sources.
