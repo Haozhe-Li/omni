@@ -3,11 +3,9 @@ from core.embedding import embedding_model
 import uuid
 import traceback
 
-unique_id = str(uuid.uuid4())
-
 
 class SemanticSearchCache:
-    def __init__(self, collection_name: str = "cache_1"):
+    def __init__(self, collection_name: str = "cache-1"):
         self.collection_name = collection_name
 
     def add(self, sources: list):
@@ -32,12 +30,12 @@ class SemanticSearchCache:
                 combined_text = f"{query_text} {snippet_text}".strip()
                 texts.append(combined_text)
 
-            embeddings = embedding_model.embed(texts)
+            embeddings = list(embedding_model.embed(texts))
 
             # upsert to Qdrant
             points = [
                 {
-                    "id": f"{unique_id}_{i}",
+                    "id": f"{str(uuid.uuid4())}",
                     "vector": embedding,
                     "payload": {
                         "url": source.get("url", ""),
@@ -62,14 +60,14 @@ class SemanticSearchCache:
     def get(self, query: str, k: int = 5):
         try:
             # embed the query
-            query_embedding = embedding_model.embed([query])[0]
+            query_embedding = list(embedding_model.embed([query]))[0]
 
             # search in Qdrant
             results = client.search(
                 collection_name=self.collection_name,
                 query_vector=query_embedding,
                 limit=k,
-                score_threshold=0.6,
+                score_threshold=0.5,
             )
 
             # format results
