@@ -1,6 +1,7 @@
 from core.vectordb import client
 from core.embedding import embedding_model
 import uuid
+import traceback
 
 unique_id = str(uuid.uuid4())
 
@@ -55,6 +56,7 @@ class SemanticSearchCache:
             )
             print("Successfully added sources to cache.")
         except Exception as e:
+            traceback.print_exc()
             print(f"Error adding sources to cache: {e}")
 
     def get(self, query: str, k: int = 5):
@@ -84,6 +86,7 @@ class SemanticSearchCache:
 
             return sources
         except Exception as e:
+            traceback.print_exc()
             print(f"Error retrieving from cache: {e}")
             return []
 

@@ -13,6 +13,7 @@ from core.utils import pretty_yield_messages, clean_messages, format_tool_messag
 from core.get_suggestion import SuggestionAgent
 from core.sources import ss
 from core.semantic_search_cache import semantic_cache
+import traceback
 
 load_dotenv()
 app = FastAPI(title="Omni API", description="A REST API for the Omni supervisor system")
@@ -143,6 +144,7 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                 ss.clear_sources()
             yield f"data: {json.dumps({'content': '[DONE]'})}\n\n"
         except Exception as e:
+            traceback.print_exc()
             error_message = f"Error processing request: {str(e)}"
             print(error_message)
             res_error = """Sorry, something went wrong while processing your request. Please try again later."""
