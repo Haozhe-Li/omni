@@ -1,7 +1,9 @@
 from langchain_community.document_loaders import WebBaseLoader
 from langgraph.prebuilt import create_react_agent
 from core.sources import ss
-import pprint
+from core.llm_models import default_llm_models
+
+model = default_llm_models.web_page_model
 
 
 def load_web_page(url: str):
@@ -15,10 +17,6 @@ def load_web_page(url: str):
     ss.set_sources(sources)
     return documents[0]
 
-
-from core.globalvaris import GROQ_CHAT_MODEL_FAST
-
-model = f"groq:{GROQ_CHAT_MODEL_FAST}"
 
 web_page_agent = create_react_agent(
     model=model,

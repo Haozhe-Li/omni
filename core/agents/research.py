@@ -4,6 +4,7 @@ from core.llm_models import default_llm_models
 from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
+from core.semantic_search_cache import semantic_cache
 
 model = init_chat_model(default_llm_models.research_model)
 
@@ -11,20 +12,6 @@ from langchain_community.document_loaders import WebBaseLoader
 from core.sources import ss
 
 nest_asyncio.apply()
-
-
-def load_web_page(urls: list[str]) -> str:
-    """Load a web page and return its content.
-
-    Args:
-        urls (list[str]): A list of URLs to load.
-
-    Returns:
-        str: The content of the web page.
-    """
-    loader = WebBaseLoader(urls)
-    documents = loader.load()
-    return documents
 
 
 def web_search(
@@ -45,7 +32,7 @@ def web_search(
 
 
 @tool(return_direct=True)
-def research(query: str, time_level: str = "") -> str:
+def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
     """Research a topic using web search and return the context.
 
     Args:
@@ -55,6 +42,10 @@ def research(query: str, time_level: str = "") -> str:
                           Not passing this parameter will use the default which search results for anytime.
                           You will only use this when the search is time sensitive enough.
                           Defaults to "" means anytime.
+        use_cache (bool): Whether to use the semantic search cache.
+                          Setting to False will strictly disable the cache and always perform a fresh search.
+                          when the time_level is set to "day" or "week", it will always perform a fresh search.
+                          Defaults to True, meaning it will use the cache if available.
 
     Returns:
         str:  A summary of the search results.
@@ -66,6 +57,19 @@ def research(query: str, time_level: str = "") -> str:
         "year": "qdr:y",
     }
     tbs = time_level_map.get(time_level, "")
+
+    if use_cache and time_level not in ["day", "week"]:
+        # Use semantic search cache if available
+        cached_sources = semantic_cache.get(query)
+        if cached_sources:
+            print(f"Using cached sources for query: {query}")
+            ss.set_sources(cached_sources)
+            context = "\n\n".join(
+                f"{source['title']}: {source['snippet']} ({source['url']})"
+                for source in cached_sources
+            )
+            return context
+
     search_results, answer_box, knowledge_graph = web_search(
         querys=[query], k=5, tbs=tbs
     )
@@ -74,7 +78,13 @@ def research(query: str, time_level: str = "") -> str:
     urls = [result["link"] for result in search_results]
     # assign sources variable, sources is a list of key: value pairs
     sources = [
-        {"url": url, "title": result["title"], "snippet": result["snippet"]}
+        {
+            "query": query,
+            "url": url,
+            "title": result["title"],
+            "snippet": result["snippet"],
+            "from_cache": False,
+        }
         for url, result in zip(urls, search_results)
     ]
     # concat all result snippet together as context

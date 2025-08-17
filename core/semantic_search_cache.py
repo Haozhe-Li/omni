@@ -1,0 +1,81 @@
+from core.vectordb import client
+from core.embedding import embedding_model
+import uuid
+
+unique_id = str(uuid.uuid4())
+
+
+class SemanticSearchCache:
+    def __init__(self, collection_name: str = "cache_1"):
+        self.collection_name = collection_name
+
+    def add(self, sources: list):
+        try:
+            if not sources:
+                return
+
+            # filter out source where from_cache is False
+            sources = [
+                source for source in sources if not source.get("from_cache", False)
+            ]
+
+            # embed each source, with source[query] + source[snippet] as text
+            texts = [f"{source['query']} {source['snippet']}" for source in sources]
+            embeddings = embedding_model.embed(texts)
+
+            # upsert to Qdrant
+            points = [
+                {
+                    "id": f"{unique_id}_{i}",
+                    "vector": embedding,
+                    "payload": {
+                        "url": source["url"],
+                        "title": source["title"],
+                        "snippet": source["snippet"],
+                        "query": source["query"],
+                        "from_cache": True,
+                    },
+                }
+                for i, (embedding, source) in enumerate(zip(embeddings, sources))
+            ]
+
+            client.upsert(
+                collection_name=self.collection_name,
+                points=points,
+            )
+            print("Successfully added sources to cache.")
+        except Exception as e:
+            print(f"Error adding sources to cache: {e}")
+
+    def get(self, query: str, k: int = 5):
+        try:
+            # embed the query
+            query_embedding = embedding_model.embed([query])[0]
+
+            # search in Qdrant
+            results = client.search(
+                collection_name=self.collection_name,
+                query_vector=query_embedding,
+                limit=k,
+                score_threshold=0.6,
+            )
+
+            # format results
+            sources = [
+                {
+                    "url": point.payload["url"],
+                    "title": point.payload["title"],
+                    "snippet": point.payload["snippet"],
+                    "query": point.payload["query"],
+                    "from_cache": True,
+                }
+                for point in results
+            ]
+
+            return sources
+        except Exception as e:
+            print(f"Error retrieving from cache: {e}")
+            return []
+
+
+semantic_cache = SemanticSearchCache()

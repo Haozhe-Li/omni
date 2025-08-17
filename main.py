@@ -12,6 +12,7 @@ from core.light_agent import light
 from core.utils import pretty_yield_messages, clean_messages, format_tool_messages
 from core.get_suggestion import SuggestionAgent
 from core.sources import ss
+from core.semantic_search_cache import semantic_cache
 
 load_dotenv()
 app = FastAPI(title="Omni API", description="A REST API for the Omni supervisor system")
@@ -138,6 +139,7 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
             sourses = ss.get_sources()
             if sourses:
                 yield f"data: {json.dumps({'sources': sourses})}\n\n"
+                semantic_cache.add(sources=sourses)
                 ss.clear_sources()
             yield f"data: {json.dumps({'content': '[DONE]'})}\n\n"
         except Exception as e:

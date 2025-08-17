@@ -12,3 +12,5 @@ nest_asyncio
 rizaio
 setuptools==80.9.0
 pyowm==3.3.0
+fastembed
+qdrant-client
