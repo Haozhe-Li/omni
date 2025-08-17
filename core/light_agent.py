@@ -41,7 +41,13 @@ def quick_search(query: str) -> str:
     urls = [result["link"] for result in search_results]
     # assign sources variable, sources is a list of key: value pairs
     sources = [
-        {"url": url, "title": result["title"], "snippet": result["snippet"]}
+        {
+            "query": query,
+            "url": url,
+            "title": result["title"],
+            "snippet": result["snippet"],
+            "from_cache": False,
+        }
         for url, result in zip(urls, search_results)
     ]
     context = "\n\n".join(result["snippet"] for result in search_results)
@@ -63,9 +69,11 @@ def quick_search(query: str) -> str:
         )
         sources.append(
             {
+                "query": query,
                 "url": knowledge_graph.get("descriptionLink", "N/A"),
                 "title": knowledge_graph.get("Apple", "N/A"),
                 "snippet": "",
+                "from_cache": False,
             }
         )
     ss.set_sources(sources)

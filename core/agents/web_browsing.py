@@ -13,7 +13,15 @@ def load_web_page(url: str):
     if not documents:
         return "No content found on the web page."
     title = documents[0].metadata["title"]
-    sources = [{"url": url, "title": title}]
+    sources = [
+        {
+            "query": "",  # web browsing doesn't have a specific query
+            "url": url,
+            "title": title,
+            "snippet": "",  # could add a snippet of content if needed
+            "from_cache": False,
+        }
+    ]
     ss.set_sources(sources)
     return documents[0]
 

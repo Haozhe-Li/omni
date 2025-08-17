@@ -19,8 +19,18 @@ class SemanticSearchCache:
                 source for source in sources if not source.get("from_cache", False)
             ]
 
+            if not sources:
+                return
+
             # embed each source, with source[query] + source[snippet] as text
-            texts = [f"{source['query']} {source['snippet']}" for source in sources]
+            # Handle cases where query might not exist in source
+            texts = []
+            for source in sources:
+                query_text = source.get("query", "")
+                snippet_text = source.get("snippet", "")
+                combined_text = f"{query_text} {snippet_text}".strip()
+                texts.append(combined_text)
+
             embeddings = embedding_model.embed(texts)
 
             # upsert to Qdrant
@@ -29,10 +39,10 @@ class SemanticSearchCache:
                     "id": f"{unique_id}_{i}",
                     "vector": embedding,
                     "payload": {
-                        "url": source["url"],
-                        "title": source["title"],
-                        "snippet": source["snippet"],
-                        "query": source["query"],
+                        "url": source.get("url", ""),
+                        "title": source.get("title", ""),
+                        "snippet": source.get("snippet", ""),
+                        "query": source.get("query", ""),
                         "from_cache": True,
                     },
                 }
@@ -63,10 +73,10 @@ class SemanticSearchCache:
             # format results
             sources = [
                 {
-                    "url": point.payload["url"],
-                    "title": point.payload["title"],
-                    "snippet": point.payload["snippet"],
-                    "query": point.payload["query"],
+                    "url": point.payload.get("url", ""),
+                    "title": point.payload.get("title", ""),
+                    "snippet": point.payload.get("snippet", ""),
+                    "query": point.payload.get("query", ""),
                     "from_cache": True,
                 }
                 for point in results
