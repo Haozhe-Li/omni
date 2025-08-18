@@ -1,11 +1,12 @@
 from core.vectordb import client
-from core.embedding import embedding_model
+from qdrant_client import models
+from core.embedding import dense_embedding_model, sparse_embedding_model
 import uuid
 import traceback
 
 
 class SemanticSearchCache:
-    def __init__(self, collection_name: str = "cache-1"):
+    def __init__(self, collection_name: str = "cache-2"):
         self.collection_name = collection_name
 
     def add(self, sources: list):
@@ -30,13 +31,17 @@ class SemanticSearchCache:
                 combined_text = f"{query_text} {snippet_text}".strip()
                 texts.append(combined_text)
 
-            embeddings = list(embedding_model.embed(texts))
+            dense_embeddings = list(dense_embedding_model.embed(texts))
+            sparse_embeddings = list(sparse_embedding_model.embed(texts))
 
             # upsert to Qdrant
             points = [
                 {
                     "id": f"{str(uuid.uuid4())}",
-                    "vector": embedding,
+                    "vector": {
+                        "bge_dense_vector": dense_embedding,
+                        "bm25_sparse_vector": sparse_embedding.as_object(),
+                    },
                     "payload": {
                         "url": source.get("url", ""),
                         "title": source.get("title", ""),
@@ -45,7 +50,9 @@ class SemanticSearchCache:
                         "from_cache": True,
                     },
                 }
-                for i, (embedding, source) in enumerate(zip(embeddings, sources))
+                for i, (dense_embedding, sparse_embedding, source) in enumerate(
+                    zip(dense_embeddings, sparse_embeddings, sources)
+                )
             ]
 
             client.upsert(
@@ -57,17 +64,30 @@ class SemanticSearchCache:
             traceback.print_exc()
             print(f"Error adding sources to cache: {e}")
 
-    def get(self, query: str, k: int = 5):
+    def get(self, query: str, k: int = 5, threshold: float = 0.8):
         try:
-            # embed the query
-            query_embedding = list(embedding_model.embed([query]))[0]
+            prefetch = [
+                models.Prefetch(
+                    query=next(dense_embedding_model.query_embed(query)),
+                    using="bge_dense_vector",
+                    limit=k * 2,
+                ),
+                models.Prefetch(
+                    query=(next(sparse_embedding_model.query_embed(query)).as_object()),
+                    using="bm25_sparse_vector",
+                    limit=k * 2,
+                ),
+            ]
 
-            # search in Qdrant
-            results = client.search(
-                collection_name=self.collection_name,
-                query_vector=query_embedding,
+            results = client.query_points(
+                self.collection_name,
+                prefetch=prefetch,
+                query=models.FusionQuery(
+                    fusion=models.Fusion.RRF,
+                ),
+                with_payload=True,
                 limit=k,
-                score_threshold=0.5,
+                score_threshold=threshold,
             )
 
             # format results
@@ -79,7 +99,7 @@ class SemanticSearchCache:
                     "query": point.payload.get("query", ""),
                     "from_cache": True,
                 }
-                for point in results
+                for point in results.points
             ]
 
             return sources
