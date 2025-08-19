@@ -60,7 +60,7 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
 
     if use_cache and time_level not in ["day", "week"]:
         # Use semantic search cache if available
-        cached_sources = semantic_cache.get(query， threshold=0.8)
+        cached_sources = semantic_cache.get(query, threshold=0.8)
         if cached_sources:
             print(f"Using cached sources for query: {query}")
             ss.set_sources(cached_sources)
