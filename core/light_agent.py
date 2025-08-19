@@ -46,7 +46,7 @@ def quick_search(query: str) -> str:
             "url": url,
             "title": result["title"],
             "snippet": result["snippet"],
-            "from_cache": False,
+            "aviod_cache": False,
         }
         for url, result in zip(urls, search_results)
     ]
@@ -73,7 +73,7 @@ def quick_search(query: str) -> str:
                 "url": knowledge_graph.get("descriptionLink", "N/A"),
                 "title": knowledge_graph.get("Apple", "N/A"),
                 "snippet": "",
-                "from_cache": False,
+                "aviod_cache": False,
             }
         )
     ss.set_sources(sources)

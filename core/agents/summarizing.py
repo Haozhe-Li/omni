@@ -37,6 +37,7 @@ summarizing_agent = create_react_agent(
         "- Employ bullet points and numbered lists for clarity\n"
         "- Include tables for comparisons and structured data\n"
         "- Use code blocks for technical content\n"
+        "- Always wrapped links into markdown format: [link text](URL). Make sure link text is within proper length and descriptive.\n"
         "- Apply proper Markdown formatting throughout\n\n"
         "## CONTENT QUALITY STANDARDS:\n"
         "- **Comprehensive Coverage**: Include all relevant information from provided context\n"

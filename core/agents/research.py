@@ -15,7 +15,7 @@ nest_asyncio.apply()
 
 
 def web_search(
-    querys: list[str], k: int = 3, tbs: str = ""
+    querys: list[str], k: int = 10, tbs: str = ""
 ) -> tuple[list[dict], str, dict]:
     print(f"Performing web search for queries: {querys}")
     if not tbs:
@@ -83,7 +83,7 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
             "url": url,
             "title": result["title"],
             "snippet": result["snippet"],
-            "from_cache": False,
+            "aviod_cache": False,
         }
         for url, result in zip(urls, search_results)
     ]
@@ -98,7 +98,8 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
             {
                 "url": answer_box.get("sourceLink", "N/A"),
                 "title": answer_box.get("title"),
-                "snippet": "",
+                "snippet": answer_box.get("answer"),
+                "aviod_cache": False,
             }
         )
     if knowledge_graph:
@@ -109,7 +110,8 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
             {
                 "url": knowledge_graph.get("descriptionLink", "N/A"),
                 "title": knowledge_graph.get("Apple", "N/A"),
-                "snippet": "",
+                "snippet": knowledge_graph.get("description", ""),
+                "aviod_cache": False,
             }
         )
     ss.set_sources(sources)

@@ -14,9 +14,9 @@ class SemanticSearchCache:
             if not sources:
                 return
 
-            # filter out source where from_cache is False
+            # filter out source where aviod_cache is False
             sources = [
-                source for source in sources if not source.get("from_cache", False)
+                source for source in sources if not source.get("aviod_cache", True)
             ]
 
             if not sources:
@@ -28,7 +28,8 @@ class SemanticSearchCache:
             for source in sources:
                 query_text = source.get("query", "")
                 snippet_text = source.get("snippet", "")
-                combined_text = f"{query_text} {snippet_text}".strip()
+                title_text = source.get("title", "")
+                combined_text = f"query: {query_text}  title: {title_text}  snippet: {snippet_text}".strip()
                 texts.append(combined_text)
 
             dense_embeddings = list(dense_embedding_model.embed(texts))
@@ -47,7 +48,7 @@ class SemanticSearchCache:
                         "title": source.get("title", ""),
                         "snippet": source.get("snippet", ""),
                         "query": source.get("query", ""),
-                        "from_cache": True,
+                        "aviod_cache": True,
                     },
                 }
                 for i, (dense_embedding, sparse_embedding, source) in enumerate(
@@ -64,7 +65,7 @@ class SemanticSearchCache:
             traceback.print_exc()
             print(f"Error adding sources to cache: {e}")
 
-    def get(self, query: str, k: int = 5, threshold: float = 0.8):
+    def get(self, query: str, k: int = 5, threshold: float = 0.6):
         try:
             prefetch = [
                 models.Prefetch(
@@ -97,7 +98,7 @@ class SemanticSearchCache:
                     "title": point.payload.get("title", ""),
                     "snippet": point.payload.get("snippet", ""),
                     "query": point.payload.get("query", ""),
-                    "from_cache": True,
+                    "aviod_cache": True,
                 }
                 for point in results.points
             ]

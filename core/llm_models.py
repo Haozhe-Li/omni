@@ -45,9 +45,9 @@ class LLMModels:
             self.web_page_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
             self.planning_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
             self.timing_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
-            self.coding_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
+            self.coding_model = f"groq:{OPENAI_CHAT_MODEL_FAST}"
             self.suggestion_model = ChatGroq(
-                model=GROQ_CHAT_MODEL_FAST
+                model=GROQ_CHAT_MODEL_ULTRA_FAST
             ).with_structured_output(method="json_mode")
             # self.suggestion_model = ChatOpenAI(
             #     model=OPENAI_CHAT_MODEL_ULTRA_FAST
