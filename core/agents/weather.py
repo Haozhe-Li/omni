@@ -9,7 +9,7 @@ import traceback
 model = init_chat_model(default_llm_models.weather_model)
 
 
-# @tool(return_direct=True)
+@tool(return_direct=True)
 def get_current_weather(location: str) -> str:
     """
     Get the current weather for a specified location.
