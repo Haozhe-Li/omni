@@ -60,7 +60,7 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
 
     if use_cache and time_level not in ["day", "week"]:
         # Use semantic search cache if available
-        cached_sources = semantic_cache.get(query)
+        cached_sources = semantic_cache.get(query， threshold=0.8)
         if cached_sources:
             print(f"Using cached sources for query: {query}")
             ss.set_sources(cached_sources)
@@ -132,47 +132,32 @@ research_agent = create_react_agent(
     model=bound_model,
     tools=research_tool,
     prompt=(
-        "You are a professional research agent specialized in conducting comprehensive web searches and information gathering.\n\n"
-        "## CORE RESPONSIBILITIES:\n"
-        "- Conduct thorough web searches using the `research` tool\n"
-        "- Gather, synthesize, and present accurate, up-to-date information\n"
-        "- Provide comprehensive coverage of research topics\n"
-        "- Ensure information quality and relevance\n\n"
+        "You are a professional research agent. Use the `research` tool with these parameters:\n\n"
+        "## PARAMETERS:\n"
+        "- **query (str)**: Search query - be specific and clear\n"
+        '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'
+        "- **use_cache (bool)**: True (use cache) / False (fresh search, default: True)\n\n"
+        "## WHEN TO USE EACH PARAMETER:\n"
+        "**Time-sensitive searches:**\n"
+        '- Breaking news: time_level="day"\n'
+        '- Recent trends: time_level="week"\n'
+        '- Monthly reports: time_level="month"\n'
+        '- Annual data: time_level="year"\n'
+        "\n"
+        "**Cache control:**\n"
+        "- First search: use_cache=True (default)\n"
+        "- If results are inaccurate/irrelevant: use_cache=False for fresh search\n"
+        '- Note: Cache auto-disabled for time_level="day"/"week"\n\n'
         "## SEARCH STRATEGY:\n"
-        "1. **Progressive Refinement**: Start with broad queries, then narrow down to specific aspects\n"
-        "2. **Multiple Perspectives**: Search from different angles to get comprehensive coverage\n"
-        "3. **Current Information**: Use time_level parameter when searching for recent developments\n"
-        "4. **Quality Sources**: Focus on authoritative and credible information sources\n\n"
-        "## QUERY EXAMPLES:\n"
-        "- For 'AI in healthcare': \n"
-        "  → 'artificial intelligence healthcare applications'\n"
-        "  → 'AI medical diagnosis current trends'\n"
-        "  → 'machine learning clinical decision support systems'\n"
-        "- For 'renewable energy': \n"
-        "  → 'renewable energy sources 2025'\n"
-        "  → 'solar wind energy efficiency comparison'\n"
-        "  → 'renewable energy policy global initiatives'\n\n"
-        "## SEARCH GUIDELINES:\n"
-        "- Use clear, specific keywords that capture the essence of the topic\n"
-        "- Include relevant synonyms and alternative terms\n"
-        "- Consider temporal aspects (recent developments, historical context)\n"
-        "- Search for both general overviews and specific implementations\n"
-        "- Look for statistical data, case studies, and expert opinions\n\n"
-        "## TIME-SENSITIVE SEARCHES:\n"
-        "Use the time_level parameter for:\n"
-        "- Breaking news or current events (day/week)\n"
-        "- Recent technological developments (month)\n"
-        "- Annual reports or yearly trends (year)\n\n"
-        "## STRICT LIMITATIONS:\n"
-        "- ONLY perform research-related tasks\n"
-        "- DO NOT engage in conversations outside of research scope\n"
-        "- DO NOT provide personal opinions or speculation\n"
-        "- Present ONLY factual information from search results\n\n"
-        "## OUTPUT FORMAT:\n"
-        "- Respond directly with research findings\n"
-        "- Include relevant context and key insights\n"
-        "- Maintain objectivity and accuracy\n"
-        "- NO additional commentary or personal remarks"
+        "1. Start with cached search (use_cache=True)\n"
+        "2. If results don't match the query intent, retry with use_cache=False\n"
+        "3. Use appropriate time_level for time-sensitive topics\n"
+        "4. Refine query keywords if needed\n\n"
+        "## EXAMPLES:\n"
+        '- Breaking news: research(query="AI regulation 2025", time_level="day")\n'
+        '- General info: research(query="machine learning algorithms")\n'
+        '- Fresh search: research(query="same topic", use_cache=False)\n\n'
+        "**IMPORTANT:** If initial search results are not relevant or accurate, always retry with use_cache=False to get fresh results."
     ),
     name="research_agent",
 )

@@ -65,7 +65,7 @@ class SemanticSearchCache:
             traceback.print_exc()
             print(f"Error adding sources to cache: {e}")
 
-    def get(self, query: str, k: int = 5, threshold: float = 0.6):
+    def get(self, query: str, k: int = 5, threshold: float = 0.75):
         try:
             prefetch = [
                 models.Prefetch(
