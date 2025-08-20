@@ -38,7 +38,13 @@ class SemanticSearchCache:
                 query_text = source.get("query", "")
                 snippet_text = source.get("snippet", "")
                 title_text = source.get("title", "")
-                combined_text = f"query: {query_text}  title: {title_text}  snippet: {snippet_text}".strip()
+                if query_text:
+                    combined_text = (
+                        f"{query_text}".strip()
+                    )  # if query_text is present, then only use it
+                else:
+                    combined_text = f"{snippet_text} {title_text}".strip()
+                print(f"Embedding text: {combined_text}")
                 texts.append(combined_text)
 
             dense_embeddings = list(dense_embedding_model.embed(texts))
@@ -74,7 +80,7 @@ class SemanticSearchCache:
             traceback.print_exc()
             print(f"Error adding sources to cache: {e}")
 
-    def get(self, query: str, k: int = 5, threshold: float = 0.75):
+    def get(self, query: str, k: int = 5, threshold: float = 0.8):
         if not self.useCache:
             print("Cache is disabled, not retrieving sources.")
             return []
