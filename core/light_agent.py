@@ -28,7 +28,7 @@ def web_search(querys: list[str]) -> Optional[tuple[list[dict], str, dict]]:
     return results, answer_box, knowledge_graph
 
 
-@tool(return_direct=True)
+# @tool(return_direct=True)
 def quick_search(query: str) -> str:
     """Perform a quick search and return a summary of the results.
 
