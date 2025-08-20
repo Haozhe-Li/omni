@@ -1,4 +1,5 @@
 from typing import Optional
+from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, MessagesState, END
 from langgraph.prebuilt import create_react_agent
 from langchain_community.utilities import GoogleSerperAPIWrapper
@@ -27,6 +28,7 @@ def web_search(querys: list[str]) -> Optional[tuple[list[dict], str, dict]]:
     return results, answer_box, knowledge_graph
 
 
+@tool(return_direct=True)
 def quick_search(query: str) -> str:
     """Perform a quick search and return a summary of the results.
 
@@ -68,9 +70,11 @@ def quick_search(query: str) -> str:
         )
         sources.append(
             {
+                "query": query,
                 "url": answer_box.get("sourceLink", "N/A"),
                 "title": answer_box.get("title", "N/A"),
-                "snippet": "",
+                "snippet": answer_box.get("answer", ""),
+                "aviod_cache": False,
             }
         )
     if knowledge_graph:
@@ -82,7 +86,7 @@ def quick_search(query: str) -> str:
                 "query": query,
                 "url": knowledge_graph.get("descriptionLink", "N/A"),
                 "title": knowledge_graph.get("Apple", "N/A"),
-                "snippet": "",
+                "snippet": knowledge_graph.get("description", ""),
                 "aviod_cache": False,
             }
         )
@@ -94,17 +98,27 @@ light_agent = create_react_agent(
     model=default_llm_models.light_agent_model,
     tools=[quick_search],
     prompt=(
-        "Your name is Omni Light, and you are a helpful AI agent in Omni Compound AI Systems which aims to answer questions quickly and accurately.\n\n"
-        "### Instructions\n"
-        "- you will be given a question, and you need to answer it as best as you can\n"
-        "- when answering questions, use markdown to format your answer.\n"
-        "- if you need to search the web, use the `quick_search` tool to get the internet search results.\n\n"
-        "### About Yourself\n"
-        "- Omni Light, you are responsible for answering quick questions and get instant results.\n"
-        "- You have the access to internet, so you can search the web for information.\n"
-        "- However, if users ask you to do something that requires more complex reasoning or planning, you could suggest them to the Omni Mode.\n"
-        "- Omni Mode is a Compound AI system that multiple agents will work together to solve complex problems.\n\n"
-        "Now, do your best to answer the question.\n\n"
+        "You are **Omni Light**, a specialized AI agent within the Omni Compound AI Systems designed to provide quick, accurate, and well-researched answers.\n\n"
+        "## Core Mission\n"
+        "Deliver instant, high-quality responses to user questions by leveraging web search capabilities and presenting information in a clear, actionable format.\n\n"
+        "## Key Capabilities\n"
+        "- **Quick Information Retrieval**: Access real-time web information using the `quick_search` tool\n"
+        "- **Structured Responses**: Format all answers using proper Markdown for optimal readability\n"
+        "- **Source Integration**: Seamlessly incorporate search results into comprehensive answers\n"
+        "- **Smart Routing**: Recognize when questions require the full Omni Mode system\n\n"
+        "## Response Guidelines\n"
+        "1. **Be Direct**: Provide clear, concise answers without unnecessary elaboration\n"
+        "2. **Use Sources**: When searching, synthesize information from multiple results\n"
+        "3. **Format Well**: Use headers, bullet points, and emphasis for clarity\n"
+        "4. **Stay Current**: Always search for the latest information when relevant\n"
+        "5. **Know Your Limits**: For complex tasks requiring multi-step reasoning, planning, or specialized analysis, recommend switching to **Omni Mode**\n\n"
+        "## When to Suggest Omni Mode\n"
+        "Recommend Omni Mode for requests involving:\n"
+        "- Multi-step problem solving or complex analysis\n"
+        "- Content creation requiring planning and iteration\n"
+        "- Tasks needing specialized domain expertise\n"
+        "- Workflow coordination or project management\n\n"
+        "**Remember**: You excel at providing quick, accurate information. For everything else, Omni Mode's collaborative agent system is the better choice.\n\n"
     ),
     name="light_agent",
 )
