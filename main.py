@@ -37,6 +37,11 @@ class QueryModel(BaseModel):
     mode: str
     location: str = None  # Optional location field for light agent queries
     preferredLanguage: str = None  # Optional preferred language field
+    useCache: bool = True  # Optional field to use cache, default is True
+    collectDataToCache: bool = (
+        True  # Optional field to collect data to cache, default is True
+    )
+    dateTime: str = None  # Optional field for date and time, default is None
 
 
 class SuggestionModel(BaseModel):
@@ -65,12 +70,19 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
     mode = input_query.mode
     location = input_query.location
     preferred_language = input_query.preferredLanguage
+    use_cache = input_query.useCache
+    collect_data_to_cache = input_query.collectDataToCache
     system_str = ""
+    date_time = input_query.dateTime
     if location:
         system_str += f"""
         ## Location Personalization:
         User's current location is {location}. Please use this information for personalization in weather and timing. 
         However, if another specific location is mentioned in the query, use that instead."""
+    if date_time:
+        system_str += f"""
+        ## Date and Time Personalization:
+        User's current date and time, timezone is {date_time}."""
     if preferred_language:
         system_str += f"""
         ## CRITICAL LANGUAGE REQUIREMENT:
@@ -91,6 +103,12 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
     print("Input Data:", input_data)
 
     activate_agent = light if mode == "light" else supervisor
+    use_cache = (
+        True if activate_agent == light else use_cache
+    )  # hardcoded light agent always use cache
+    semantic_cache.set_cache_settings(
+        useCache=use_cache, collectDataToCache=collect_data_to_cache
+    )
 
     async def response_generator():
         """Generate a streaming response from the supervisor system.

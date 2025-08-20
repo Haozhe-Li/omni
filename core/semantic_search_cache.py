@@ -9,7 +9,16 @@ class SemanticSearchCache:
     def __init__(self, collection_name: str = "cache-2"):
         self.collection_name = collection_name
 
+    def set_cache_settings(
+        self, useCache: bool = True, collectDataToCache: bool = True
+    ):
+        self.useCache = useCache
+        self.collectDataToCache = collectDataToCache
+
     def add(self, sources: list):
+        if not self.collectDataToCache:
+            print("Cache is disabled, not adding sources.")
+            return
         try:
             if not sources:
                 return
@@ -66,6 +75,9 @@ class SemanticSearchCache:
             print(f"Error adding sources to cache: {e}")
 
     def get(self, query: str, k: int = 5, threshold: float = 0.75):
+        if not self.useCache:
+            print("Cache is disabled, not retrieving sources.")
+            return []
         try:
             prefetch = [
                 models.Prefetch(

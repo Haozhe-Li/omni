@@ -15,7 +15,6 @@ from langgraph.graph import END
 from core.agents.research import research_agent
 from core.agents.math import math_agent
 from core.agents.web_browsing import web_page_agent
-from core.agents.timing import timing_agent
 from core.agents.coding import coding_agent
 from core.agents.summarizing import summarizing_agent
 from core.agents.weather import weather_agent
@@ -70,10 +69,6 @@ assign_to_planning_agent = create_handoff_tool(
     description="Assign task to a planning agent.",
 )
 
-assign_to_timing_agent = create_handoff_tool(
-    agent_name="timing_agent",
-    description="Assign task to a timing agent.",
-)
 
 assign_to_coding_agent = create_handoff_tool(
     agent_name="coding_agent",
@@ -93,7 +88,6 @@ tools = [
     assign_to_research_agent,
     assign_to_math_agent,
     assign_to_web_page_agent,
-    assign_to_timing_agent,
     assign_to_coding_agent,
     assign_to_summarizing_agent,
     assign_to_weather_agent,
@@ -108,14 +102,13 @@ supervisor_agent = create_react_agent(
         "- **Research Agent**: Browse current information over the internet, gather facts and data\n"
         "- **Math Agent**: Perform mathematical calculations, analysis, and problem-solving - USE FOR ALL MATH TASKS\n"
         "- **Web Page Agent**: ONLY use when user explicitly provides a webpage URL to analyze - DO NOT call proactively\n"
-        "- **Timing Agent**: Provide exact datetime information, handle time-related queries\n"
         "- **Coding Agent**: ONLY use when explicitly assigned programming tasks - DO NOT call proactively for calculations\n"
         "- **Weather Agent**: Provide current weather information for specific locations\n"
         "- **Summarizing Agent**: FINAL STEP - Synthesize all research findings into comprehensive answer (NOT counted as a call)\n\n"
         "BUDGET CONSTRAINT - MAXIMUM 8 AGENT CALLS:\n"
         "Count each agent delegation as 1 call, EXCEPT summarizing_agent which is FREE. Examples:\n"
         "- research_agent → coding_agent → math_agent → research_agent → summarizing_agent = 4 calls ✓\n"
-        "- timing_agent → research_agent → summarizing_agent = 2 calls ✓\n"
+        "- research_agent → math_agent → summarizing_agent = 2 calls ✓\n"
         "**Stay within 8 calls total (summarizing_agent is FREE and doesn't count)**\n"
         "**If you reach 8 calls, you MUST immediately call summarizing_agent even if research is incomplete**\n\n"
         "RESEARCH STRATEGY:\n"
@@ -134,9 +127,8 @@ supervisor_agent = create_react_agent(
         "- **Web Page Agent**: Only use when user explicitly provides URLs - never call proactively\n\n"
         "RESEARCH WORKFLOW EXAMPLES (within budget):\n"
         "- Simple query: research_agent → summarizing_agent (1 call + free summary)\n"
-        "- Time-sensitive: timing_agent → research_agent → summarizing_agent (2 calls + free summary)\n"
+        "- Multi-faceted research: research_agent → math_agent → research_agent → summarizing_agent (3 calls + free summary)\n"
         "- Calculation-heavy: research_agent → math_agent → research_agent → summarizing_agent (3 calls + free summary)\n"
-        "- Multi-faceted: research_agent → math_agent → research_agent → summarizing_agent (3 calls + free summary)\n"
         "- Complex research: research_agent → research_agent → math_agent → research_agent → summarizing_agent (4 calls + free summary)\n\n"
         "CRITICAL RULES:\n"
         "- **NEVER answer questions directly** - You are a supervisor, not a direct answerer\n"
@@ -161,6 +153,7 @@ supervisor_agent = create_react_agent(
         "- After receiving results: Is this sufficient or do I need more investigation?\n"
         "- If agent failed: Should I retry once or switch to alternative?\n"
         "- Have I reached 8 calls? → MUST call summarizing_agent immediately\n\n"
+        "NOTE: User queries now include current date/time information, so no separate time queries are needed.\n\n"
     ),
     name="supervisor",
 )
@@ -175,7 +168,6 @@ supervisor = (
             "research_agent",
             "math_agent",
             "web_page_agent",
-            "timing_agent",
             "coding_agent",
             "summarizing_agent",
             "weather_agent",
@@ -184,7 +176,6 @@ supervisor = (
     .add_node(research_agent)
     .add_node(math_agent)
     .add_node(web_page_agent)
-    .add_node(timing_agent)
     .add_node(coding_agent)
     .add_node(summarizing_agent)
     .add_node(weather_agent)
@@ -192,7 +183,6 @@ supervisor = (
     .add_edge("research_agent", "supervisor")
     .add_edge("math_agent", "supervisor")
     .add_edge("web_page_agent", "supervisor")
-    .add_edge("timing_agent", "supervisor")
     .add_edge("coding_agent", "supervisor")
     .add_edge("weather_agent", "supervisor")
     .add_edge("summarizing_agent", END)
