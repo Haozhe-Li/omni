@@ -8,6 +8,8 @@ import traceback
 class SemanticSearchCache:
     def __init__(self, collection_name: str = "cache-2"):
         self.collection_name = collection_name
+        self.useCache = True
+        self.collectDataToCache = True
 
     def set_cache_settings(
         self, useCache: bool = True, collectDataToCache: bool = True
