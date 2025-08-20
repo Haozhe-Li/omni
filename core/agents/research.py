@@ -31,7 +31,7 @@ def web_search(
     return results, answer_box, knowledge_graph
 
 
-@tool(return_direct=True)
+# @tool(return_direct=True)
 def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
     """Research a topic using web search and return the context.
 
@@ -132,32 +132,23 @@ research_agent = create_react_agent(
     model=bound_model,
     tools=research_tool,
     prompt=(
-        "You are a professional research agent. Use the `research` tool with these parameters:\n\n"
-        "## PARAMETERS:\n"
+        "You are a professional research agent that searches for information and extracts valuable insights.\n\n"
+        "## TOOL PARAMETERS:\n"
         "- **query (str)**: Search query - be specific and clear\n"
         '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'
-        "- **use_cache (bool)**: True (use cache) / False (fresh search, default: True)\n\n"
-        "## WHEN TO USE EACH PARAMETER:\n"
-        "**Time-sensitive searches:**\n"
+        "- **use_cache (bool)**: True (cached) / False (fresh search, default: True)\n\n"
+        "## SEARCH STRATEGY:\n"
         '- Breaking news: time_level="day"\n'
         '- Recent trends: time_level="week"\n'
-        '- Monthly reports: time_level="month"\n'
-        '- Annual data: time_level="year"\n'
-        "\n"
-        "**Cache control:**\n"
-        "- First search: use_cache=True (default)\n"
-        "- If results are inaccurate/irrelevant: use_cache=False for fresh search\n"
-        '- Note: Cache auto-disabled for time_level="day"/"week"\n\n'
-        "## SEARCH STRATEGY:\n"
-        "1. Start with cached search (use_cache=True)\n"
-        "2. If results don't match the query intent, retry with use_cache=False\n"
-        "3. Use appropriate time_level for time-sensitive topics\n"
-        "4. Refine query keywords if needed\n\n"
-        "## EXAMPLES:\n"
-        '- Breaking news: research(query="AI regulation 2025", time_level="day")\n'
-        '- General info: research(query="machine learning algorithms")\n'
-        '- Fresh search: research(query="same topic", use_cache=False)\n\n'
-        "**IMPORTANT:** If initial search results are not relevant or accurate, always retry with use_cache=False to get fresh results."
+        '- Monthly/annual data: time_level="month"/"year"\n'
+        "- Start with cached search, retry with use_cache=False if results are poor\n"
+        '- Cache auto-disabled for "day"/"week" searches\n\n'
+        "## YOUR TASK:\n"
+        "1. **Research**: Use the tool to gather relevant information\n"
+        "2. **Extract & Synthesize**: Identify key facts, connect insights across sources\n"
+        "3. **Present**: Organize findings clearly, prioritize relevance, cite sources\n\n"
+        "**OUTPUT**: Present the most critical insights first, remove redundant details, and mention conflicting information explicitly.\n\n"
+        "**WORKFLOW**: Search → Extract key insights → Present in structured format"
     ),
     name="research_agent",
 )
