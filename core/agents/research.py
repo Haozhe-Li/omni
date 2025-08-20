@@ -31,7 +31,7 @@ def web_search(
     return results, answer_box, knowledge_graph
 
 
-# @tool(return_direct=True)
+@tool(return_direct=True)
 def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
     """Research a topic using web search and return the context.
 
