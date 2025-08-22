@@ -31,7 +31,7 @@ def web_search(
     return results, answer_box, knowledge_graph
 
 
-@tool(return_direct=True)
+# @tool(return_direct=True)
 def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
     """Research a topic using web search and return the context.
 
@@ -83,12 +83,14 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
             "url": url,
             "title": result["title"],
             "snippet": result["snippet"],
-            "aviod_cache": False,
+            "aviod_cache": use_cache,
         }
         for url, result in zip(urls, search_results)
     ]
     # concat all result snippet together as context
-    context = "\n\n".join(result["snippet"] for result in search_results)
+    context = "Context Snippets:\n\n".join(
+        result["snippet"] for result in search_results
+    )
     if answer_box:
         context = (
             f"Answer from Google, refer this answer directly: {answer_box.get('answer')}\n\n"
@@ -99,7 +101,7 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
                 "url": answer_box.get("sourceLink", "N/A"),
                 "title": answer_box.get("title"),
                 "snippet": answer_box.get("answer"),
-                "aviod_cache": False,
+                "aviod_cache": use_cache,
             }
         )
     if knowledge_graph:
@@ -111,7 +113,7 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
                 "url": knowledge_graph.get("descriptionLink", "N/A"),
                 "title": knowledge_graph.get("Apple", "N/A"),
                 "snippet": knowledge_graph.get("description", ""),
-                "aviod_cache": False,
+                "aviod_cache": use_cache,
             }
         )
     ss.set_sources(sources)
@@ -137,18 +139,23 @@ research_agent = create_react_agent(
         "- **query (str)**: Search query - be specific and clear\n"
         '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'
         "- **use_cache (bool)**: True (cached) / False (fresh search, default: True)\n\n"
+        "## SINGLE TOOL CALL RESTRICTION:\n"
+        "- **CRITICAL**: You can ONLY call the research tool ONCE per request\n"
+        "- Do NOT retry with different parameters if results are poor\n"
+        "- Work with whatever information you receive from the single search\n"
+        "- If no results or poor results, acknowledge limitations and summarize only available information\n\n"
         "## SEARCH STRATEGY:\n"
         '- Breaking news: time_level="day"\n'
         '- Recent trends: time_level="week"\n'
         '- Monthly/annual data: time_level="month"/"year"\n'
-        "- Start with cached search, retry with use_cache=False if results are poor\n"
+        "- Choose your parameters carefully since you only get one attempt\n"
         '- Cache auto-disabled for "day"/"week" searches\n\n'
         "## YOUR TASK:\n"
-        "1. **Research**: Use the tool to gather relevant information\n"
-        "2. **Extract & Synthesize**: Identify key facts, connect insights across sources\n"
-        "3. **Present**: Organize findings clearly, prioritize relevance, cite sources\n\n"
-        "**OUTPUT**: Present the most critical insights first, remove redundant details, and mention conflicting information explicitly.\n\n"
-        "**WORKFLOW**: Search → Extract key insights → Present in structured format"
+        "1. **Research**: Use the tool ONCE to gather relevant information\n"
+        "2. **Extract & Synthesize & Summarize**: Identify key facts from available sources only\n"
+        "**OUTPUT**: Present insights based ONLY on the information retrieved. If results are insufficient, clearly state the limitations and provide only what was found.\n\n"
+        "**IMPORTANT**: Never generate information not supported by your search results. If sources are unreliable or insufficient, acknowledge this limitation.\n\n"
+        "**WORKFLOW**: Single Search → Extract available insights → Summarize based on actual sources only"
     ),
     name="research_agent",
 )
