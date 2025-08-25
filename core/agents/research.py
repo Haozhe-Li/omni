@@ -1,17 +1,16 @@
-from langchain_community.utilities import GoogleSerperAPIWrapper
 import nest_asyncio
-from core.llm_models import default_llm_models
-from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
-from langchain_core.tools import tool
-from core.semantic_search_cache import semantic_cache
-
-model = init_chat_model(default_llm_models.research_model)
-
 from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.utilities import GoogleSerperAPIWrapper
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
+
+from core.llm_models import default_llm_models
+from core.semantic_search_cache import semantic_cache
 from core.sources import ss
 
 nest_asyncio.apply()
+model = init_chat_model(default_llm_models.research_model)
 
 
 def web_search(
@@ -129,6 +128,7 @@ research_tool = [research]
 #         "function": {"name": "research"},
 #     },
 # )
+
 
 research_agent = create_react_agent(
     model=model,

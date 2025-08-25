@@ -1,10 +1,12 @@
-from langgraph.prebuilt import create_react_agent
-from core.llm_models import default_llm_models
+import traceback
+
+from langchain.chat_models import init_chat_model
 from langchain_community.utilities import OpenWeatherMapAPIWrapper
 from langchain_core.tools import tool
-from langchain.chat_models import init_chat_model
+from langgraph.prebuilt import create_react_agent
+
+from core.llm_models import default_llm_models
 from core.sources import ss
-import traceback
 
 model = init_chat_model(default_llm_models.weather_model)
 
