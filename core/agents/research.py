@@ -30,8 +30,8 @@ def web_search(
     return results, answer_box, knowledge_graph
 
 
-# @tool(return_direct=True)
-def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
+@tool(return_direct=True)
+def research(query: str, time_level: str = "", use_cache: bool = True) -> dict:
     """Research a topic using web search and return the context.
 
     Args:
@@ -47,7 +47,7 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
                           Defaults to True, meaning it will use the cache if available.
 
     Returns:
-        str:  A summary of the search results.
+        dict:  A dict containing all the snippets, querys and links.
     """
     time_level_map = {
         "day": "qdr:d",
@@ -116,22 +116,22 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> str:
             }
         )
     ss.set_sources(sources)
-    return context
+    return sources
 
 
 research_tool = [research]
 
-# bound_model = model.bind_tools(
-#     research_tool,
-#     tool_choice={
-#         "type": "function",
-#         "function": {"name": "research"},
-#     },
-# )
+bound_model = model.bind_tools(
+    research_tool,
+    tool_choice={
+        "type": "function",
+        "function": {"name": "research"},
+    },
+)
 
 
 research_agent = create_react_agent(
-    model=model,
+    model=bound_model,
     tools=research_tool,
     prompt=(
         "You are a professional research agent that searches for information and extracts valuable insights.\n\n"
@@ -140,8 +140,9 @@ research_agent = create_react_agent(
         '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'
         "- **use_cache (bool)**: True (cached) / False (fresh search, default: True)\n\n"
         "## SINGLE TOOL CALL RESTRICTION:\n"
-        "- **CRITICAL**: You can ONLY call the research tool ONCE per request\n"
+        "- **CRITICAL**: You can MUST call the research tool ONCE per request\n"
         "- Do NOT retry with different parameters if results are poor\n"
+        "- Do NOT skip research tool to answer questions directly"
         "- Work with whatever information you receive from the single search\n"
         "- If no results or poor results, acknowledge limitations and summarize only available information\n\n"
         "## SEARCH STRATEGY:\n"
@@ -151,9 +152,9 @@ research_agent = create_react_agent(
         "- Choose your parameters carefully since you only get one attempt\n"
         '- Cache auto-disabled for "day"/"week" searches\n\n'
         "## YOUR TASK:\n"
-        "1. **Research**: Use the tool ONCE to gather relevant information\n"
-        "2. **Extract & Synthesize & Summarize**: Identify key facts from available sources only\n"
-        "**OUTPUT**: Present insights based ONLY on the information retrieved. If results are insufficient, clearly state the limitations and provide only what was found.\n\n"
+        "1. **Research**: Use the tool ONCE to gather relevant information. The query should be short, concise but clear.\n"
+        "2. **Extract**: Identify key facts from each sources provided to you, one by one, summarize them line by line. Clearly stated and explained each source.\n"
+        "**OUTPUT**: Present the key facts extracted from each sources and insights based ONLY on the information retrieved. If results are insufficient, clearly state the limitations and provide only what was found.\n\n"
         "**IMPORTANT**: Never generate information not supported by your search results. If sources are unreliable or insufficient, acknowledge this limitation.\n\n"
         "**WORKFLOW**: Single Search → Extract available insights → Summarize based on actual sources only"
     ),
