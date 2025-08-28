@@ -30,7 +30,7 @@ def web_search(
     return results, answer_box, knowledge_graph
 
 
-@tool(return_direct=True)
+# @tool(return_direct=True)
 def research(query: str, time_level: str = "", use_cache: bool = True) -> dict:
     """Research a topic using web search and return the context.
 
@@ -121,17 +121,17 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> dict:
 
 research_tool = [research]
 
-bound_model = model.bind_tools(
-    research_tool,
-    tool_choice={
-        "type": "function",
-        "function": {"name": "research"},
-    },
-)
+# bound_model = model.bind_tools(
+#     research_tool,
+#     tool_choice={
+#         "type": "function",
+#         "function": {"name": "research"},
+#     },
+# )
 
 
 research_agent = create_react_agent(
-    model=bound_model,
+    model=model,
     tools=research_tool,
     prompt=(
         "You are a professional research agent that searches for information and extracts valuable insights.\n\n"
