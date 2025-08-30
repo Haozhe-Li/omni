@@ -1,9 +1,10 @@
 import json
+import traceback
+from typing import List, Dict
 from dotenv import load_dotenv
 
 load_dotenv()
-from typing import List, Dict
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -13,9 +14,8 @@ from core.utils import pretty_yield_messages, clean_messages, format_tool_messag
 from core.get_suggestion import SuggestionAgent
 from core.sources import ss
 from core.semantic_search_cache import semantic_cache
-import traceback
+from core.trie import autocomplete_trie
 
-load_dotenv()
 app = FastAPI(title="Omni API", description="A REST API for the Omni supervisor system")
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +52,38 @@ class SuggestionModel(BaseModel):
     """
 
     question: str
+
+
+class AutocompleteQueryModel(BaseModel):
+    """Model for autocomplete requests.
+
+    Args:
+        BaseModel (pydantic.BaseModel): The base model class from Pydantic.
+    """
+
+    prefix: str
+    max_suggestions: int = 10
+
+
+class AutocompleteUpdateModel(BaseModel):
+    """Model for updating word frequency in trie.
+
+    Args:
+        BaseModel (pydantic.BaseModel): The base model class from Pydantic.
+    """
+
+    word: str
+    increment: int = 1
+
+
+class AutocompleteLoadModel(BaseModel):
+    """Model for loading data from text file.
+
+    Args:
+        BaseModel (pydantic.BaseModel): The base model class from Pydantic.
+    """
+
+    file_path: str
 
 
 @app.post("/stream")
@@ -199,3 +231,126 @@ async def health_check() -> dict:
         dict: A dictionary containing the health status.
     """
     return {"status": "healthy"}
+
+
+# Autocomplete API endpoints
+
+
+@app.post("/autocomplete/suggest")
+async def autocomplete_suggest(query: AutocompleteQueryModel) -> dict:
+    """
+    Get autocomplete suggestions for a given prefix.
+
+    Args:
+        query (AutocompleteQueryModel): Contains prefix and max_suggestions
+
+    Returns:
+        dict: List of suggestions with word and frequency
+    """
+    try:
+        suggestions = autocomplete_trie.get_suggestions(
+            prefix=query.prefix, max_suggestions=query.max_suggestions
+        )
+        return {
+            "suggestions": suggestions,
+            "prefix": query.prefix,
+            "count": len(suggestions),
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error getting suggestions: {str(e)}"
+        )
+
+
+@app.post("/autocomplete/update")
+async def autocomplete_update_frequency(update: AutocompleteUpdateModel) -> dict:
+    """
+    Update the frequency of a word in the trie (e.g., when user selects a suggestion).
+
+    Args:
+        update (AutocompleteUpdateModel): Contains word and increment value
+
+    Returns:
+        dict: Success message
+    """
+    try:
+        autocomplete_trie.update_frequency(word=update.word, increment=update.increment)
+        autocomplete_trie.save_to_disk()  # Persist the update
+        return {
+            "message": f"Updated frequency for '{update.word}' by {update.increment}",
+            "word": update.word,
+            "increment": update.increment,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating frequency: {str(e)}"
+        )
+
+
+@app.post("/autocomplete/load")
+async def autocomplete_load_data(load_request: AutocompleteLoadModel) -> dict:
+    """
+    Load search queries from a text file into the trie.
+
+    Args:
+        load_request (AutocompleteLoadModel): Contains file path
+
+    Returns:
+        dict: Load status and statistics
+    """
+    try:
+        autocomplete_trie.load_from_text_file(load_request.file_path)
+        autocomplete_trie.save_to_disk()  # Persist the loaded data
+        stats = autocomplete_trie.get_stats()
+        return {
+            "message": f"Successfully loaded data from {load_request.file_path}",
+            "stats": stats,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading data: {str(e)}")
+
+
+@app.get("/autocomplete/stats")
+async def autocomplete_stats() -> dict:
+    """
+    Get statistics about the autocomplete trie.
+
+    Returns:
+        dict: Trie statistics including word count, cache info, etc.
+    """
+    try:
+        stats = autocomplete_trie.get_stats()
+        top_queries = autocomplete_trie.get_top_queries(limit=10)
+        return {"stats": stats, "top_queries": top_queries}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting stats: {str(e)}")
+
+
+@app.post("/autocomplete/save")
+async def autocomplete_save() -> dict:
+    """
+    Manually save the trie to disk.
+
+    Returns:
+        dict: Save status
+    """
+    try:
+        autocomplete_trie.save_to_disk()
+        return {"message": "Trie successfully saved to disk"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving trie: {str(e)}")
+
+
+@app.post("/autocomplete/clear-cache")
+async def autocomplete_clear_cache() -> dict:
+    """
+    Clear the LRU caches to free memory or force cache refresh.
+
+    Returns:
+        dict: Cache clear status
+    """
+    try:
+        autocomplete_trie.clear_cache()
+        return {"message": "LRU caches cleared successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error clearing cache: {str(e)}")
