@@ -1,6 +1,7 @@
 """
 Trie data structure for autocomplete functionality.
-Supports persistence, LRU cache, and frequency-based suggestions.
+Supports persistence, LRU cache, frequency-based suggestions,
+word segmentation, and fuzzy matching.
 """
 
 import pickle
@@ -8,6 +9,8 @@ from typing import List, Optional, Dict
 from functools import lru_cache
 from collections import defaultdict
 import os
+import re
+import jieba
 
 
 class TrieNode:
@@ -18,6 +21,7 @@ class TrieNode:
         self.is_end_of_word: bool = False
         self.frequency: int = 0  # Track how often this word is used
         self.word: Optional[str] = None  # Store the complete word at end nodes
+        self.original_word: Optional[str] = None  # Store the original complete query
 
 
 class AutocompleteTrie:
@@ -30,10 +34,13 @@ class AutocompleteTrie:
     - Prefix-based suggestions
     """
 
-    def __init__(self, persistence_file: str = "models/autocomplete/trie_data.pkl"):
+    def __init__(
+        self, persistence_file: str = "models/autocomplete/enhanced_trie_data.pkl"
+    ):
         self.root = TrieNode()
         self.persistence_file = persistence_file
         self.word_frequencies: Dict[str, int] = defaultdict(int)
+        self.enable_word_segmentation = True  # 启用分词功能
         self._create_data_dir()
         self.load_from_disk()
 
@@ -41,9 +48,75 @@ class AutocompleteTrie:
         """Create data directory if it doesn't exist."""
         os.makedirs(os.path.dirname(self.persistence_file), exist_ok=True)
 
+    def _segment_text(self, text: str) -> List[str]:
+        """
+        对文本进行分词处理，生成多个搜索索引
+
+        Args:
+            text (str): 输入文本
+
+        Returns:
+            List[str]: 分词后的所有可能子串
+        """
+        segments = []
+        text = text.strip()
+
+        # 添加完整查询
+        segments.append(text)
+
+        # 中文分词
+        chinese_words = jieba.lcut(text)
+        chinese_words = [
+            w.strip()
+            for w in chinese_words
+            if w.strip()
+            and len(w.strip()) > 1
+            and w.strip() not in '，。？！；：""（）【】'
+        ]
+
+        # 生成中文词组合
+        for i in range(len(chinese_words)):
+            for j in range(i + 1, len(chinese_words) + 1):
+                segment = "".join(chinese_words[i:j]).strip()
+                if len(segment) > 1:
+                    segments.append(segment)
+
+        # 英文分词
+        english_words = re.findall(r"\b[a-zA-Z]+\b", text)
+        english_words = [w.strip() for w in english_words if len(w.strip()) > 1]
+
+        # 生成英文词组合
+        for i in range(len(english_words)):
+            for j in range(i + 1, len(english_words) + 1):
+                segment = " ".join(english_words[i:j]).strip()
+                if len(segment) > 1:
+                    segments.append(segment)
+
+        # 单独的中文词
+        for word in chinese_words:
+            if len(word) > 1:
+                segments.append(word)
+                # 对长词再次分解（处理 jieba 可能的过度组合）
+                if len(word) > 2:
+                    # 尝试提取2-3字的子词
+                    for i in range(len(word) - 1):
+                        for j in range(i + 2, min(i + 4, len(word) + 1)):
+                            sub_word = word[i:j]
+                            if len(sub_word) >= 2:
+                                segments.append(sub_word)
+
+        # 单独的英文单词
+        for word in english_words:
+            if len(word) > 1:
+                segments.append(word)
+
+        # 去重并返回
+        return list(set(segments))
+
     def insert(self, word: str, frequency: int = 1):
         """
         Insert a word into the trie with optional frequency.
+        支持分词处理，将长查询拆分成多个可搜索的片段。
 
         Args:
             word (str): The word to insert
@@ -52,20 +125,36 @@ class AutocompleteTrie:
         if not word or not word.strip():
             return
 
-        word = word.strip().lower()
+        original_word = word.strip()
+
+        if self.enable_word_segmentation:
+            segments = self._segment_text(original_word)
+            for segment in segments:
+                self._insert_single(segment, original_word, frequency)
+        else:
+            self._insert_single(original_word, original_word, frequency)
+
+    def _insert_single(self, key: str, original_word: str, frequency: int):
+        """插入单个词到 Trie"""
+        key = key.lower()
         node = self.root
 
         # Traverse the trie, creating nodes as needed
-        for char in word:
+        for char in key:
             if char not in node.children:
                 node.children[char] = TrieNode()
             node = node.children[char]
 
         # Mark end of word and update frequency
-        node.is_end_of_word = True
-        node.word = word
-        node.frequency += frequency
-        self.word_frequencies[word] += frequency
+        if node.is_end_of_word:
+            node.frequency += frequency
+        else:
+            node.is_end_of_word = True
+            node.frequency = frequency
+            node.word = key
+            node.original_word = original_word
+
+        self.word_frequencies[original_word] += frequency
 
     def insert_batch(self, words: List[str]):
         """
@@ -121,6 +210,7 @@ class AutocompleteTrie:
     ) -> List[Dict[str, any]]:
         """
         Get autocomplete suggestions for a given prefix.
+        现在支持智能匹配，包括分词匹配和模糊匹配。
 
         Args:
             prefix (str): The prefix to search for
@@ -132,7 +222,83 @@ class AutocompleteTrie:
         if not prefix or not prefix.strip():
             return []
 
-        prefix = prefix.strip().lower()
+        return self.smart_search(prefix, max_suggestions)
+
+    def smart_search(
+        self, query: str, max_suggestions: int = 10
+    ) -> List[Dict[str, any]]:
+        """
+        智能搜索，结合多种策略
+
+        Args:
+            query (str): 搜索查询
+            max_suggestions (int): 最大建议数量
+
+        Returns:
+            List[Dict]: 搜索建议列表
+        """
+        if not query or not query.strip():
+            return []
+
+        all_suggestions = []
+        query = query.strip()
+
+        # 1. 精确前缀匹配
+        exact_matches = self._prefix_search(query.lower(), max_suggestions)
+        all_suggestions.extend([{**s, "match_type": "exact"} for s in exact_matches])
+
+        # 2. 分词后的部分匹配
+        if self.enable_word_segmentation:
+            segments = self._segment_text(query)
+            for segment in segments:
+                if segment.lower() != query.lower():
+                    partial_matches = self._prefix_search(
+                        segment.lower(), max_suggestions // 2
+                    )
+                    all_suggestions.extend(
+                        [{**s, "match_type": "partial"} for s in partial_matches]
+                    )
+
+        # 3. 模糊匹配（编辑距离 <= 1）
+        if len(query) > 2:  # 只对长度大于2的查询进行模糊匹配
+            fuzzy_matches = self._fuzzy_search(
+                query.lower(), max_distance=1, max_suggestions=max_suggestions // 2
+            )
+            all_suggestions.extend(
+                [{**s, "match_type": "fuzzy"} for s in fuzzy_matches]
+            )
+
+        # 去重并排序
+        seen = set()
+        unique_suggestions = []
+        for s in all_suggestions:
+            # 使用原始词作为去重键
+            original = s.get("original_word", s["word"])
+            if original not in seen:
+                seen.add(original)
+                unique_suggestions.append(s)
+
+        # 按匹配类型和频率排序
+        match_type_priority = {"exact": 0, "partial": 1, "fuzzy": 2}
+        unique_suggestions.sort(
+            key=lambda x: (match_type_priority.get(x["match_type"], 3), -x["frequency"])
+        )
+
+        return unique_suggestions[:max_suggestions]
+
+    def _prefix_search(
+        self, prefix: str, max_suggestions: int = 10
+    ) -> List[Dict[str, any]]:
+        """
+        传统的前缀搜索
+
+        Args:
+            prefix (str): 搜索前缀
+            max_suggestions (int): 最大建议数量
+
+        Returns:
+            List[Dict]: 搜索结果
+        """
         node = self.root
 
         # Navigate to the prefix node
@@ -149,6 +315,66 @@ class AutocompleteTrie:
         suggestions.sort(key=lambda x: x["frequency"], reverse=True)
         return suggestions[:max_suggestions]
 
+    def _fuzzy_search(
+        self, prefix: str, max_distance: int = 1, max_suggestions: int = 10
+    ) -> List[Dict[str, any]]:
+        """
+        模糊搜索，支持编辑距离
+
+        Args:
+            prefix (str): 搜索前缀
+            max_distance (int): 最大编辑距离
+            max_suggestions (int): 最大建议数量
+
+        Returns:
+            List[Dict]: 模糊匹配结果
+        """
+        suggestions = []
+
+        def dfs(node, current_word, distance, pos):
+            if distance > max_distance:
+                return
+
+            if node.is_end_of_word and len(current_word) >= len(prefix) - max_distance:
+                suggestions.append(
+                    {
+                        "word": current_word,
+                        "original_word": getattr(node, "original_word", current_word),
+                        "frequency": node.frequency,
+                        "distance": distance,
+                    }
+                )
+                if len(suggestions) >= max_suggestions * 3:  # 收集更多候选
+                    return
+
+            # 如果已经处理完整个前缀，继续遍历子节点
+            if pos >= len(prefix):
+                for char, child in node.children.items():
+                    dfs(child, current_word + char, distance, pos + 1)
+                return
+
+            target_char = prefix[pos].lower()
+
+            for char, child in node.children.items():
+                if char == target_char:
+                    # 精确匹配
+                    dfs(child, current_word + char, distance, pos + 1)
+                elif distance < max_distance:
+                    # 替换
+                    dfs(child, current_word + char, distance + 1, pos + 1)
+                    # 插入
+                    dfs(child, current_word + char, distance + 1, pos)
+
+            # 删除（跳过当前前缀字符）
+            if distance < max_distance and pos < len(prefix):
+                dfs(node, current_word, distance + 1, pos + 1)
+
+        dfs(self.root, "", 0, 0)
+
+        # 按距离和频率排序
+        suggestions.sort(key=lambda x: (x["distance"], -x["frequency"]))
+        return suggestions[:max_suggestions]
+
     def _collect_words(
         self, node: TrieNode, current_word: str, suggestions: List[Dict[str, any]]
     ):
@@ -161,7 +387,14 @@ class AutocompleteTrie:
             suggestions (List[Dict]): List to store suggestions
         """
         if node.is_end_of_word:
-            suggestions.append({"word": current_word, "frequency": node.frequency})
+            original = getattr(node, "original_word", current_word)
+            suggestions.append(
+                {
+                    "word": current_word,
+                    "original_word": original,
+                    "frequency": node.frequency,
+                }
+            )
 
         for char, child_node in node.children.items():
             self._collect_words(child_node, current_word + char, suggestions)
@@ -242,6 +475,7 @@ class AutocompleteTrie:
                 "is_end_of_word": node.is_end_of_word,
                 "frequency": node.frequency,
                 "word": node.word,
+                "original_word": getattr(node, "original_word", None),
                 "children": {
                     char: serialize_node(child) for char, child in node.children.items()
                 },
@@ -257,6 +491,7 @@ class AutocompleteTrie:
             node.is_end_of_word = node_data.get("is_end_of_word", False)
             node.frequency = node_data.get("frequency", 0)
             node.word = node_data.get("word")
+            node.original_word = node_data.get("original_word")
 
             for char, child_data in node_data.get("children", {}).items():
                 node.children[char] = deserialize_node(child_data)
