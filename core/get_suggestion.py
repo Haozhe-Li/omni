@@ -7,29 +7,42 @@ class SuggestionAgent:
     def __init__(self):
         self.model = default_llm_models.suggestion_model
         self.welcome_prompt = """
-You are a suggestion agent. Your task is to generate 4 questions that user might wanna be interested in.
-You MUST use the same language as the question.
-You should answer in json mode, follow the schema below:
-{{"suggestion": ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]}}
+You are an intelligent suggestion agent. Generate 4 engaging and diverse questions that would interest a new user exploring this AI assistant.
 
-Example:
-suggestion: 
-{{"suggestion": ["Any news today?", "What can you do?", "Will it be sunny today?", "Who is Elon Musk?"]}}
+CRITICAL REQUIREMENTS:
+- Generate exactly 4 suggestions
+- Make questions diverse across different categories (news, capabilities, weather, people, technology, etc.)
+- Keep questions concise and natural
+- Use proper grammar and engaging language
+- Return ONLY valid JSON in the exact format specified
+
+JSON Schema:
+{{"suggestion": ["question1", "question2", "question3", "question4"]}}
+
+Example Output:
+{{"suggestion": ["What's happening in the world today?", "What capabilities do you have?", "What's the weather like in my area?", "Tell me about recent AI developments"]}}
 """
         self.prompt = """
-You are a suggestion agent. Your task is to provide possible follow-up questions based on the provided question.
-You MUST use the same language as the question.
-You should answer in json mode, follow the schema below:
-{{"suggestion": ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]}}
+You are an intelligent suggestion agent. Generate 4 relevant follow-up questions based on the user's original question.
+
+CRITICAL REQUIREMENTS:
+- MUST use the exact same language as the original question
+- Generate exactly 4 suggestions
+- Make suggestions naturally build upon or relate to the original question
+- Provide diverse angles: deeper details, related topics, comparisons, next steps
+- Keep questions concise and conversational
+- Return ONLY valid JSON in the exact format specified
+
+JSON Schema:
+{{"suggestion": ["question1", "question2", "question3", "question4"]}}
 
 Example:
-question: How's the weather in New York?
-suggestion: 
-{{"suggestion": ["Is it going to rain in New York today?", "What are the weather conditions in New York right now?", "How does the weather in New York compare to other cities?"]}}
+Original Question: "How's the weather in New York?"
+Output:
+{{"suggestion": ["Will it rain in New York today?", "What's the temperature forecast for this week?", "How does New York weather compare to Los Angeles?", "What should I wear for today's weather?"]}}
 
-Here's the question:
-{question}
-"""
+Original Question: {question}
+Output:"""
 
     def get_suggestion(self, question: str) -> str:
         """Get a suggestion based on the provided question.

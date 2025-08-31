@@ -1101,3 +1101,8 @@ Omni是什么？
 Omni是一个AI智能体吗？
 Omni Light和Omni Compound之前什么关系呢？
 Can Omni Sing a Song?
+你好，你是谁呀？
+你的名字叫什么？
+Hi, how are you?
+What's your name?
+What can you do?

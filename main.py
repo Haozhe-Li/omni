@@ -1,4 +1,5 @@
 import json
+import os
 import traceback
 from typing import List, Dict
 from dotenv import load_dotenv
@@ -24,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
+is_ingest_cache = os.getenv("INGEST_CACHE", "true").lower() == "true"
 
 
 class QueryModel(BaseModel):
@@ -139,7 +142,8 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
         True if activate_agent == light else use_cache
     )  # hardcoded light agent always use cache
     semantic_cache.set_cache_settings(
-        useCache=use_cache, collectDataToCache=collect_data_to_cache
+        useCache=use_cache,
+        collectDataToCache=(collect_data_to_cache and is_ingest_cache),
     )
 
     async def response_generator():

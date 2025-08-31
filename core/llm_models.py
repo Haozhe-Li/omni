@@ -21,37 +21,19 @@ class LLMModels:
     """
 
     def __init__(self):
-        preset = os.getenv("LLM_MODEL_PRESET", "groq")
-        if preset == "openai":
-            print("Using OpenAI models")
-            self.supervisor_model = init_chat_model(f"openai:{OPENAI_CHAT_MODEL}")
-            self.research_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
-            self.math_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
-            self.web_page_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
-            self.planning_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
-            self.timing_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
-            self.coding_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
-            self.suggestion_model = ChatOpenAI(
-                model=OPENAI_CHAT_MODEL_ULTRA_FAST
-            ).with_structured_output(method="json_mode")
-            self.summarizing_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
-            self.weather_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
-            self.light_agent_model = f"openai:{OPENAI_CHAT_MODEL_FAST}"
-        else:
-            print("Using Groq models")
-            self.supervisor_model = init_chat_model(f"groq:{OPENAI_CHAT_MODEL}")
-            self.research_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
-            self.math_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
-            self.web_page_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
-            self.planning_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
-            self.timing_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
-            self.coding_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
-            self.suggestion_model = ChatGroq(
-                model=GROQ_CHAT_MODEL_ULTRA_FAST
-            ).with_structured_output(method="json_mode")
-            self.summarizing_model = f"groq:{GROQ_REASONING_MODEL}"
-            self.weather_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
-            self.light_agent_model = f"groq:{OPENAI_CHAT_MODEL_FAST}"
+        self.supervisor_model = init_chat_model(f"groq:{OPENAI_CHAT_MODEL}")
+        self.research_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
+        self.math_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
+        self.web_page_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
+        self.planning_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
+        self.timing_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
+        self.coding_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
+        self.suggestion_model = ChatGroq(
+            model=GROQ_CHAT_MODEL_ULTRA_FAST
+        ).with_structured_output(method="json_mode")
+        self.summarizing_model = f"groq:{GROQ_REASONING_MODEL}"
+        self.weather_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
+        self.light_agent_model = f"groq:{OPENAI_CHAT_MODEL_FAST}"
 
 
 default_llm_models = LLMModels()
