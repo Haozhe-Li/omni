@@ -12,6 +12,180 @@ import os
 import re
 import jieba
 
+# 定义停用词列表
+STOP_WORDS = {
+    # 英文停用词
+    "in",
+    "out",
+    "ing",
+    "and",
+    "or",
+    "the",
+    "a",
+    "an",
+    "to",
+    "of",
+    "for",
+    "by",
+    "on",
+    "at",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "can",
+    "must",
+    "shall",
+    "it",
+    "he",
+    "she",
+    "they",
+    "we",
+    "you",
+    "i",
+    "me",
+    "him",
+    "her",
+    "them",
+    "us",
+    "this",
+    "that",
+    "these",
+    "those",
+    "with",
+    "from",
+    "up",
+    "down",
+    "into",
+    "over",
+    "under",
+    "again",
+    "then",
+    "once",
+    "here",
+    "there",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "any",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "s",
+    "t",
+    "just",
+    "now",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "off",
+    "further",
+    # 中文停用词
+    "的",
+    "了",
+    "在",
+    "是",
+    "我",
+    "有",
+    "和",
+    "就",
+    "不",
+    "人",
+    "都",
+    "一",
+    "一个",
+    "上",
+    "也",
+    "很",
+    "到",
+    "说",
+    "要",
+    "去",
+    "你",
+    "会",
+    "着",
+    "没有",
+    "看",
+    "好",
+    "自己",
+    "这",
+    "那",
+    "么",
+    "吧",
+    "呢",
+    "啊",
+    "呀",
+    "哦",
+    "嗯",
+    "哪",
+    "什么",
+    "怎么",
+    "为什么",
+    "如何",
+    "能",
+    "可以",
+    "应该",
+    "必须",
+    "已经",
+    "还是",
+    "或者",
+    "但是",
+    "然后",
+    "所以",
+    "因为",
+    "如果",
+    "虽然",
+    # 常见的无意义短词
+    "er",
+    "ly",
+    "ed",
+    "al",
+    "ic",
+    "re",
+    "un",
+    "pre",
+    "de",
+    "ex",
+    "sub",
+}
+
+# 最小词长度阈值
+MIN_WORD_LENGTH = 2
+
 
 class TrieNode:
     """A single node in the Trie data structure."""
@@ -47,6 +221,35 @@ class AutocompleteTrie:
     def _create_data_dir(self):
         """Create data directory if it doesn't exist."""
         os.makedirs(os.path.dirname(self.persistence_file), exist_ok=True)
+
+    def _is_valid_suggestion(self, word: str, original_word: str = None) -> bool:
+        """
+        检查建议是否有效（过滤停用词和过短的词）
+
+        Args:
+            word (str): 要检查的词
+            original_word (str): 原始完整词（如果有的话）
+
+        Returns:
+            bool: 是否为有效建议
+        """
+        # 使用原始词进行检查，如果没有则使用当前词
+        check_word = (original_word or word).strip().lower()
+
+        # 过滤过短的词
+        if len(check_word) < MIN_WORD_LENGTH:
+            return False
+
+        # 过滤停用词
+        if check_word in STOP_WORDS:
+            return False
+
+        # 过滤只包含停用词的组合
+        words = re.findall(r"\b\w+\b", check_word.lower())
+        if words and all(w in STOP_WORDS for w in words):
+            return False
+
+        return True
 
     def _segment_text(self, text: str) -> List[str]:
         """
@@ -228,7 +431,7 @@ class AutocompleteTrie:
         self, query: str, max_suggestions: int = 10
     ) -> List[Dict[str, any]]:
         """
-        智能搜索，结合多种策略
+        智能搜索，结合多种策略，并过滤停用词和过短结果
 
         Args:
             query (str): 搜索查询
@@ -240,12 +443,23 @@ class AutocompleteTrie:
         if not query or not query.strip():
             return []
 
-        all_suggestions = []
         query = query.strip()
+
+        # 如果查询本身就是停用词或过短，直接返回空结果
+        if not self._is_valid_suggestion(query):
+            return []
+
+        all_suggestions = []
 
         # 1. 精确前缀匹配
         exact_matches = self._prefix_search(query.lower(), max_suggestions)
-        all_suggestions.extend([{**s, "match_type": "exact"} for s in exact_matches])
+        # 过滤有效建议
+        filtered_exact = [
+            {**s, "match_type": "exact"}
+            for s in exact_matches
+            if self._is_valid_suggestion(s["word"], s.get("original_word"))
+        ]
+        all_suggestions.extend(filtered_exact)
 
         # 2. 分词后的部分匹配
         if self.enable_word_segmentation:
@@ -255,18 +469,26 @@ class AutocompleteTrie:
                     partial_matches = self._prefix_search(
                         segment.lower(), max_suggestions // 2
                     )
-                    all_suggestions.extend(
-                        [{**s, "match_type": "partial"} for s in partial_matches]
-                    )
+                    # 过滤有效建议
+                    filtered_partial = [
+                        {**s, "match_type": "partial"}
+                        for s in partial_matches
+                        if self._is_valid_suggestion(s["word"], s.get("original_word"))
+                    ]
+                    all_suggestions.extend(filtered_partial)
 
         # 3. 模糊匹配（编辑距离 <= 1）
         if len(query) > 2:  # 只对长度大于2的查询进行模糊匹配
             fuzzy_matches = self._fuzzy_search(
                 query.lower(), max_distance=1, max_suggestions=max_suggestions // 2
             )
-            all_suggestions.extend(
-                [{**s, "match_type": "fuzzy"} for s in fuzzy_matches]
-            )
+            # 过滤有效建议
+            filtered_fuzzy = [
+                {**s, "match_type": "fuzzy"}
+                for s in fuzzy_matches
+                if self._is_valid_suggestion(s["word"], s.get("original_word"))
+            ]
+            all_suggestions.extend(filtered_fuzzy)
 
         # 去重并排序
         seen = set()
