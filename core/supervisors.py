@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from langchain_core.tools import tool, InjectedToolCallId
 from langgraph.prebuilt import InjectedState
 from langgraph.graph import StateGraph, START, MessagesState
@@ -21,28 +21,57 @@ from core.agents.weather import weather_agent
 
 
 def create_handoff_tool(*, agent_name: str, description: str | None = None):
+    """Create a handoff tool that routes control to another agent with optional instruction.
+
+    Added feature: an "instruction" parameter that the supervisor must supply to
+    clarify the exact subtask focus, expected angle, constraints, or desired output
+    format for the target agent. This encourages deliberate decomposition.
+    """
+
     name = f"transfer_to_{agent_name}"
-    description = description or f"Ask {agent_name} for help."
+    description = (
+        description
+        or f"Delegate a subtask to {agent_name}. Always include an 'instruction' parameter specifying the precise focus."
+    )
 
     @tool(name, description=description)
     def handoff_tool(
         state: Annotated[MessagesState, InjectedState],
         tool_call_id: Annotated[str, InjectedToolCallId],
+        instruction: Optional[str] = None,
     ) -> Command:
+        """Handoff execution.
+
+        Args:
+            state: Current graph message state (injected).
+            tool_call_id: Tool call identifier (injected).
+            instruction: A concise directive for the target agent. Should state:
+                - Subtask objective / angle
+                - Key context / constraints
+                - Expected output form (e.g., list of facts, python code, numeric proof)
+        """
+
         tool_message = {
             "role": "tool",
-            "content": f"Successfully transferred to {agent_name}",
+            "content": f"Transferred to {agent_name}. Instruction attached: {bool(instruction)}",
             "name": name,
             "tool_call_id": tool_call_id,
         }
-        # highlight-next-line
+
+        new_messages = state["messages"] + [tool_message]
+        if instruction:
+            # Provide the downstream agent with a focused user-level instruction.
+            new_messages.append(
+                {
+                    "role": "user",
+                    "content": f"<delegation_instruction target='{agent_name}'>\n{instruction.strip()}\n</delegation_instruction>",
+                }
+            )
+
         return Command(
-            # highlight-next-line
-            goto=agent_name,  # (1)!
-            # highlight-next-line
-            update={**state, "messages": state["messages"] + [tool_message]},  # (2)!
-            # highlight-next-line
-            graph=Command.PARENT,  # (3)!
+            goto=agent_name,
+            update={**state, "messages": new_messages},
+            graph=Command.PARENT,
         )
 
     return handoff_tool
@@ -96,40 +125,53 @@ supervisor_agent = create_react_agent(
     model=default_llm_models.supervisor_model,
     tools=tools,
     prompt=(
-        "RESEARCH SUPERVISOR - Strategic Agent Delegation\n\n"
-        "You manage specialized agents to conduct thorough research through strategic task delegation.\n\n"
-        "AVAILABLE AGENTS:\n"
-        "- **Research Agent**: Internet research, facts and data\n"
-        "- **Math Agent**: All calculations and mathematical analysis\n"
-        "- **Web Page Agent**: ONLY when user provides URL to analyze\n"
-        "- **Coding Agent**: ONLY for explicit programming tasks\n"
-        "- **Weather Agent**: Current weather information\n"
-        "- **Summarizing Agent**: Final synthesis (FREE - doesn't count toward budget)\n\n"
-        "BUDGET: MAX 8 AGENT CALLS (summarizing_agent is FREE)\n"
-        "- If you reach 8 calls, immediately call summarizing_agent\n"
-        "- Example: research → math → research → summarizing = 2 calls ✓\n\n"
-        "SPECIAL CASE - OMNI SYSTEM QUESTIONS:\n"
-        "For questions about Omni system itself ('What is Omni?', 'Who are you?', capabilities, etc.):\n"
-        "→ Go DIRECTLY to summarizing_agent (no other agents needed)\n\n"
-        "CORE WORKFLOW:\n"
-        "1. **First Check**: Omni system question? → Direct to summarizing_agent\n"
-        "2. **Analyze**: What information is needed? Which agents are best suited?\n"
-        "3. **Delegate**: Choose appropriate agents strategically (max 8 calls)\n"
-        "4. **Iterate**: Based on results, may need additional agent calls\n"
-        "5. **Complete**: Always end with summarizing_agent for final synthesis\n\n"
-        "KEY RULES:\n"
-        "- **Never answer directly** - Always delegate to agents\n"
-        "- **Math tasks** → Use math_agent, NOT coding_agent\n"
-        "- **Programming tasks** → coding_agent only when explicitly requested\n"
-        "- **URL analysis** → web_page_agent only when user provides URLs\n"
-        "- **Agent failures** → Retry once, then use alternative\n"
-        "- **Research cache issues** → Specify 'no cache' on retry\n"
-        "- **Budget enforcement** → Stay under 8 calls, then mandatory summarizing_agent\n\n"
-        "DECISION CHECKLIST:\n"
-        "- Is this about Omni system? → Direct to summarizing_agent\n"
-        "- What agent is best for this task?\n"
-        "- How many calls made? (Track budget)\n"
-        "- Need more information or ready to summarize?\n\n"
+        "OMNI SUPERVISOR – Multi-Hop Planner & Delegator\n\n"
+        "YOUR ROLE:\n"
+        "Break down the user's goal, plan multi-hop reasoning and retrieval, delegate ONE focused subtask at a time, reflect, adapt, and finish with summarizing_agent.\n\n"
+        "AVAILABLE AGENTS (Expertise):\n"
+        "- research_agent: Web fact/data retrieval (ONE search per call)\n"
+        "- math_agent: Formal reasoning & numerical computation (never use coding_agent for pure math)\n"
+        "- web_page_agent: Fetch & extract content ONLY if user supplied explicit URL\n"
+        "- coding_agent: Explicit programming / code execution tasks\n"
+        "- weather_agent: Current weather info\n"
+        "- summarizing_agent: Final synthesis (FREE, MUST be last)\n\n"
+        "BUDGET: Max 8 paid calls (excluding summarizing_agent). If you reach or will imminently reach 8, immediately call summarizing_agent to conclude.\n\n"
+        "SPECIAL CASE: If the user asks about Omni itself ('What is Omni', 'Who are you', capabilities, etc.) → directly call summarizing_agent.\n\n"
+        "CORE MULTI-HOP LOOP:\n"
+        "1. Analyze request → articulate overarching objective.\n"
+        "2. Derive the smallest verifiable next sub-question (do NOT fan out all at once).\n"
+        "3. Select exactly one best-fit agent for the current knowledge gap.\n"
+        "4. Call transfer_to_<agent> WITH parameter { instruction: '...'} specifying focus & output form.\n"
+        "5. After agent returns: produce <reflection>…</reflection> (what gained? what's missing? contradictions?).\n"
+        "6. If more info needed: produce a minimal <plan>…</plan> listing ONLY the single next action.\n"
+        "7. Iterate until sufficient → delegate to summarizing_agent (mandatory).\n\n"
+        "INSTRUCTION PARAMETER RULES:\n"
+        "Every transfer tool call MUST include instruction. It must be a SINGLE concise directive containing:\n"
+        "- Objective: the exact sub-question\n"
+        "- Scope/Angle: constraints to stay focused\n"
+        "- Expected Output Form: facts list / numeric result / code / structured data\n"
+        "- Constraints (e.g. 'no historical background', 'limit to top 3–5 key facts')\n"
+        'Example: instruction="Find the last 6 months of NVIDIA data center revenue YoY growth percentages; return a bullet list with month, revenue, YoY%; no projections."\n\n'
+        "REFLECTION & PLAN:\n"
+        "- After every agent (except final summary) add <reflection>…</reflection>.\n"
+        "- If continuing, add <plan>…</plan> with exactly ONE next step (no long roadmaps).\n\n"
+        "STRICT RULES:\n"
+        "- Never answer user directly—only via summarizing_agent at the end.\n"
+        "- research_agent: exactly one search per invocation (no iterative rewrites inside it).\n"
+        "- math_agent for all math/logical derivations; coding_agent only for explicit coding tasks.\n"
+        "- web_page_agent only if user supplied URL.\n"
+        "- On failure: retry once (adjust approach); persistent failure → switch strategy or acknowledge limitation.\n"
+        "- Track call count; never exceed budget.\n\n"
+        "STOP CONDITION:\n"
+        "When core sub-questions answered, information saturated, or marginal value low → call summarizing_agent.\n\n"
+        "CHECKLIST BEFORE DELEGATION:\n"
+        "- Omni self-question? → summarizing_agent\n"
+        "- Current critical knowledge gap?\n"
+        "- Best minimal-cost agent?\n"
+        "- Instruction concrete, scoped, output-oriented?\n"
+        "- Remaining budget?\n\n"
+        "OUTPUT BEHAVIOR:\n"
+        "Act ONLY via tool calls; do not fabricate answers; maintain iterative reflection cycle; ALWAYS finish with summarizing_agent."
     ),
     name="supervisor",
 )
