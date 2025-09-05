@@ -59,6 +59,9 @@ def create_handoff_tool(*, agent_name: str, description: str | None = None):
         }
 
         new_messages = state["messages"] + [tool_message]
+        # Hard logic: Clear instruction when transferring to summarizing_agent
+        if agent_name == "summarizing_agent":
+            instruction = "Please provide a well-structured and comprehensive answer."
         if instruction:
             # Provide the downstream agent with a focused user-level instruction.
             new_messages.append(

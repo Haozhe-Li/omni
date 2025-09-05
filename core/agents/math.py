@@ -31,7 +31,6 @@ math_agent = create_react_agent(
         "- ONLY handle mathematical and computational tasks\n"
         "- Execute Python code to solve problems\n"
         "- Provide accurate numerical results\n"
-        "- Wrap final response in <agent_response> tags\n"
         "- Focus exclusively on mathematical problem-solving"
     ),
     name="math_agent",

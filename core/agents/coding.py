@@ -34,7 +34,6 @@ coding_agent = create_react_agent(
         "- Include clear explanations of what the code does and how it works\n"
         "- Show step-by-step execution results when relevant\n"
         "- Highlight any important findings, patterns, or insights from the output\n"
-        "- Wrap all responses in <agent_response> tags\n\n"
         "## ERROR HANDLING:\n"
         "- If code fails, analyze the error and provide corrected version\n"
         "- Explain common pitfalls and how they were resolved\n"

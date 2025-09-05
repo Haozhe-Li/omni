@@ -11,7 +11,7 @@ from core.sources import ss
 model = init_chat_model(default_llm_models.weather_model)
 
 
-@tool(return_direct=True)
+# @tool(return_direct=True)
 def get_current_weather(location: str) -> str:
     """
     Get the current weather for a specified location.
@@ -40,17 +40,17 @@ def get_current_weather(location: str) -> str:
 
 weather_tool = [get_current_weather]
 
-# 强制调用名为 "weather" 的工具
-bound_model = model.bind_tools(
-    weather_tool,
-    tool_choice={
-        "type": "function",
-        "function": {"name": "get_current_weather"},
-    },
-)
+# # 强制调用名为 "weather" 的工具
+# bound_model = model.bind_tools(
+#     weather_tool,
+#     tool_choice={
+#         "type": "function",
+#         "function": {"name": "get_current_weather"},
+#     },
+# )
 
 weather_agent = create_react_agent(
-    model=bound_model,
+    model=model,
     tools=weather_tool,
     prompt=(
         "You are a weather assistant. Your task is to provide accurate weather information for locations.\n\n"
@@ -62,7 +62,6 @@ weather_agent = create_react_agent(
         "- If the location is unclear, ask for clarification\n"
         "- Present temperature, conditions, humidity, and wind information when available\n"
         "- Respond ONLY with relevant weather information\n"
-        "- Respond your answer in <agent_response> tag\n"
     ),
     name="weather_agent",
 )

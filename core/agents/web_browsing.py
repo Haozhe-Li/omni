@@ -55,7 +55,6 @@ web_page_agent = create_react_agent(
         "- Return extracted content in a clean, structured format\n"
         "- Include relevant metadata (title, URL, content length) when available\n"
         "- Maintain original content structure and formatting where important\n"
-        "- Wrap all responses in <agent_response> tags\n"
         "- Provide only the requested content without additional commentary\n\n"
         "## QUALITY STANDARDS:\n"
         "- Ensure content completeness and accuracy\n"

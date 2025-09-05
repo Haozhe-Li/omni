@@ -1,7 +1,8 @@
 import json
 import os
 import traceback
-from typing import List, Dict
+import re
+from typing import List, Dict, Iterable, Tuple
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from core.supervisors import supervisor
 from core.light_agent import light
-from core.utils import pretty_yield_messages, clean_messages, format_tool_messages
+from core.utils import pretty_yield_messages
 from core.get_suggestion import SuggestionAgent
 from core.sources import ss
 from core.semantic_search_cache import semantic_cache
@@ -146,63 +147,199 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
         collectDataToCache=(collect_data_to_cache and is_ingest_cache),
     )
 
-    async def response_generator():
-        """Generate a streaming response from the supervisor system.
+    ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
-        Yields:
-            str: A server-sent event containing the supervisor's output.
+    def _strip_ansi(s: str) -> str:
+        return ANSI_RE.sub("", s)
+
+    def _clean_header(text: str) -> str:
+        """Remove decorative lines, banners (Ai/Human Message), ANSI codes, blank lines."""
+        text = _strip_ansi(text)
+        cleaned: List[str] = []
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            if re.match(r"^=+$", line):
+                continue
+            if re.search(r"Ai Message", line, re.IGNORECASE):
+                continue
+            if re.search(r"Human Message", line, re.IGNORECASE):
+                continue
+            cleaned.append(line)
+        return "\n".join(cleaned).strip()
+
+    def _extract_agent_name(text: str) -> Tuple[str | None, str]:
+        """Return (agent_name, remaining_text_without_name_line).
+
+        Additional rules:
+        - delegation_instruction blocks are attributed to supervisor
+        - human messages mapped to supervisor
         """
-        try:
-            # Stream responses from supervisor
-            for chunk in activate_agent.stream(input_data):
-                # Use pretty_yield_messages to format output
-                for message_part in pretty_yield_messages(chunk, last_message=True):
-                    # Format each message part as a server-sent event
-                    message_part = clean_messages(message_part)
-                    if message_part:
-                        print(message_part)
-                        if "Name: summarizing_agent" in message_part:
-                            message_part = message_part.split(
-                                "Name: summarizing_agent"
-                            )[-1]
-                            # extract part in <think></think>
-                            thinking_part = message_part.split("<think>")[-1]
-                            thinking_part = thinking_part.split("</think>")[0]
-                            yield f"data: {json.dumps({'tool': thinking_part})}\n\n"
-                            message_part = message_part.split("</think>")[-1].strip()
-                            yield f"data: {json.dumps({'answer': message_part})}\n\n"
-                        elif "Name: supervisor" in message_part:
-                            message_part = message_part.split("Name: supervisor")[-1]
-                            thinking_part = message_part.split("<think>")[-1]
-                            thinking_part = thinking_part.split("</think>")[0]
-                            yield f"data: {json.dumps({'tool': thinking_part})}\n\n"
-                            message_part = message_part.split("</think>")[-1].strip()
-                            yield f"data: {json.dumps({'answer': message_part})}\n\n"
-                        elif "Name: light_agent" in message_part:
-                            # cut light_agent messages
-                            message_part = message_part.split("Name: light_agent")[-1]
-                            thinking_part = message_part.split("<think>")[-1]
-                            thinking_part = thinking_part.split("</think>")[0]
-                            # yield f"data: {json.dumps({'tool': thinking_part})}\n\n"
-                            message_part = message_part.split("</think>")[-1].strip()
-                            yield f"data: {json.dumps({'answer': message_part})}\n\n"
-                        else:
-                            message_part = format_tool_messages(message_part)
-                            yield f"data: {json.dumps({'tool': message_part})}\n\n"
+        # delegation instruction -> supervisor
+        stripped = text.lstrip()
+        if stripped.startswith("<delegation_instruction"):
+            return "supervisor", text
+        match = re.search(r"Name:\s*([A-Za-z0-9_\-]+)", text)
+        if match:
+            agent = match.group(1)
+            remaining = re.sub(
+                r"Name:\s*([A-Za-z0-9_\-]+)\s*", "", text, count=1
+            ).strip()
+            # Map human -> supervisor for consistency with frontend expectations
+            if agent == "human":
+                agent = "supervisor"
+            return agent, remaining
+        if "Human Message" in text:
+            return "supervisor", text
+        return None, text
 
-            # Send a completion message
+    def _split_summarizing(text: str) -> Iterable[Tuple[str, str]]:
+        """Special handling for summarizing_agent containing <think> tags.
+
+        Yields tuples of (key, value). First the thinking part with key 'summarizing_agent',
+        then the final answer with key 'answer'. If no think tags, fall back to single event.
+        """
+        if "<think>" in text and "</think>" in text:
+            think_part = text.split("<think>", 1)[1].split("</think>", 1)[0].strip()
+            answer_part = text.split("</think>", 1)[1].strip()
+            if think_part:
+                yield ("summarizing_agent", think_part)
+            if answer_part:
+                yield ("answer", answer_part)
+        else:
+            yield ("summarizing_agent", text.strip())
+
+    def _normalize_event(agent: str | None, content: str) -> Iterable[Tuple[str, str]]:
+        """Normalize a single raw message part into one or more (key, value) events."""
+        # Clean header decorations
+        content = _clean_header(content)
+        # If agent missing, detect delegation instruction after cleaning
+        if (agent is None or agent == "content") and content.startswith(
+            "<delegation_instruction"
+        ):
+            agent = "supervisor_agent"
+        if agent == "summarizing_agent":
+            yield from _split_summarizing(content)
+        else:
+            key = agent if agent else "content"
+            yield (key, content.strip())
+
+    def _strip_ansi(s: str) -> str:
+        return ANSI_RE.sub("", s)
+
+    def _clean_header(text: str) -> str:
+        """Remove decorative lines, banners (Ai/Human Message), ANSI codes, blank lines."""
+        text = _strip_ansi(text)
+        cleaned: List[str] = []
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            if re.match(r"^=+$", line):
+                continue
+            if re.search(r"Ai Message", line, re.IGNORECASE):
+                continue
+            if re.search(r"Human Message", line, re.IGNORECASE):
+                continue
+            cleaned.append(line)
+        return "\n".join(cleaned).strip()
+
+    def _extract_agent_name(text: str) -> Tuple[str | None, str]:
+        """Return (agent_name, remaining_text_without_name_line).
+
+        Additional rules:
+        - delegation_instruction blocks are attributed to supervisor
+        - human messages mapped to supervisor
+        """
+        # delegation instruction -> supervisor
+        stripped = text.lstrip()
+        if stripped.startswith("<delegation_instruction"):
+            return "supervisor_agent", text
+        match = re.search(r"Name:\s*([A-Za-z0-9_\-]+)", text)
+        if match:
+            agent = match.group(1)
+            remaining = re.sub(
+                r"Name:\s*([A-Za-z0-9_\-]+)\s*", "", text, count=1
+            ).strip()
+            # Map human -> supervisor for consistency with frontend expectations
+            if agent == "human":
+                agent = "supervisor_agent"
+            return agent, remaining
+        if "Human Message" in text:
+            return "supervisor_agent", text
+        return None, text
+
+    def _split_summarizing(text: str) -> Iterable[Tuple[str, str]]:
+        """Special handling for summarizing_agent containing <think> tags.
+
+        Yields tuples of (key, value). First the thinking part with key 'summarizing_agent',
+        then the final answer with key 'answer'. If no think tags, fall back to single event.
+        """
+        if "<think>" in text and "</think>" in text:
+            think_part = text.split("<think>", 1)[1].split("</think>", 1)[0].strip()
+            answer_part = text.split("</think>", 1)[1].strip()
+            if think_part:
+                yield ("summarizing_agent", think_part)
+            if answer_part:
+                yield ("answer", answer_part)
+        else:
+            yield ("summarizing_agent", text.strip())
+
+    def _normalize_event(agent: str | None, content: str) -> Iterable[Tuple[str, str]]:
+        """Normalize a single raw message part into one or more (key, value) events."""
+        # Clean header decorations
+        content = _clean_header(content)
+        # If agent missing, detect delegation instruction after cleaning
+        if (agent is None or agent == "content") and content.startswith(
+            "<delegation_instruction"
+        ):
+            agent = "supervisor_agent"
+        if agent == "summarizing_agent":
+            yield from _split_summarizing(content)
+        else:
+            key = agent if agent else "content"
+            yield (key, content.strip())
+
+    async def response_generator():
+        """Generate standardized streaming response events per new front-end spec."""
+        try:
+            last_light_agent: str | None = None
+            for chunk in activate_agent.stream(input_data):
+                for raw in pretty_yield_messages(chunk, last_message=True):
+                    agent, remainder = _extract_agent_name(raw)
+                    for key, value in _normalize_event(agent, remainder):
+                        if not value:
+                            continue
+                        if key == "light_agent":
+                            # Buffer until we know if it's the final one
+                            if last_light_agent is not None:
+                                # Previous buffered one is not final, emit as normal
+                                yield f"data: {json.dumps({'light_agent': last_light_agent}, ensure_ascii=False)}\n\n"
+                            last_light_agent = value
+                        else:
+                            # Flush buffered light_agent if present (since a different agent appeared, it's not final)
+                            if last_light_agent is not None:
+                                yield f"data: {json.dumps({'light_agent': last_light_agent}, ensure_ascii=False)}\n\n"
+                                last_light_agent = None
+                            yield f"data: {json.dumps({key: value}, ensure_ascii=False)}\n\n"
+
+            # After streaming all chunks, if there is a remaining light_agent message, treat it as final answer
+            if last_light_agent is not None:
+                yield f"data: {json.dumps({'answer': last_light_agent}, ensure_ascii=False)}\n\n"
+
+            # Sources (if any)
             sourses = ss.get_sources()
             if sourses:
-                yield f"data: {json.dumps({'sources': sourses})}\n\n"
+                yield f"data: {json.dumps({'sources': sourses}, ensure_ascii=False)}\n\n"
                 semantic_cache.add(sources=sourses)
                 ss.clear_sources()
-            yield f"data: {json.dumps({'content': '[DONE]'})}\n\n"
-        except Exception as e:
+            # Done signal
+            yield f"data: {json.dumps({'content': '[DONE]'}, ensure_ascii=False)}\n\n"
+        except Exception:
             traceback.print_exc()
-            error_message = f"Error processing request: {str(e)}"
-            print(error_message)
-            res_error = """Sorry, something went wrong while processing your request. Please try again later."""
-            yield f"data: {json.dumps({'answer': res_error})}\n\n"
+            res_error = "Sorry, something went wrong while processing your request. Please try again later."
+            yield f"data: {json.dumps({'answer': res_error}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
         response_generator(),
