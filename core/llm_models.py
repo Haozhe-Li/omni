@@ -22,11 +22,9 @@ class LLMModels:
 
     def __init__(self):
         self.supervisor_model = init_chat_model(f"groq:{OPENAI_CHAT_MODEL}")
-        self.research_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
+        self.research_model = f"groq:{OPENAI_CHAT_MODEL_FAST}"
         self.math_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
         self.web_page_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
-        self.planning_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
-        self.timing_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
         self.coding_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
         self.suggestion_model = ChatGroq(
             model=GROQ_CHAT_MODEL_ULTRA_FAST

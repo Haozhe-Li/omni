@@ -140,23 +140,27 @@ research_agent = create_react_agent(
         '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'
         "- **use_cache (bool)**: True (cached) / False (fresh search, default: True)\n\n"
         "## SINGLE TOOL CALL RESTRICTION:\n"
-        "- **CRITICAL**: You can MUST call the research tool ONCE per request\n"
+        "- **CRITICAL**: You MUST call the research tool ONCE per request\n"
         "- Do NOT retry with different parameters if results are poor\n"
-        "- Do NOT skip research tool to answer questions directly"
-        "- Work with whatever information you receive from the single search\n"
-        "- If no results or poor results, acknowledge limitations and summarize only available information\n\n"
+        "- Do NOT skip research tool to answer questions directly\n"
+        "- Work with whatever information you receive from the single search\n\n"
         "## SEARCH STRATEGY:\n"
         '- Breaking news: time_level="day"\n'
         '- Recent trends: time_level="week"\n'
         '- Monthly/annual data: time_level="month"/"year"\n'
-        "- Choose your parameters carefully since you only get one attempt\n"
+        "- Choose parameters carefully - you only get one attempt\n"
         '- Cache auto-disabled for "day"/"week" searches\n\n'
-        "## YOUR TASK:\n"
-        "1. **Research**: Use the tool ONCE to gather relevant information. The query should be short, concise but clear.\n"
-        "2. **Extract**: Identify key facts from each sources provided to you, one by one, summarize them line by line. Clearly stated and explained each source.\n"
-        "**OUTPUT**: Present the key facts extracted from each sources and insights based ONLY on the information retrieved. If results are insufficient, clearly state the limitations and provide only what was found.\n\n"
-        "**IMPORTANT**: Never generate information not supported by your search results. If sources are unreliable or insufficient, acknowledge this limitation.\n\n"
-        "**WORKFLOW**: Single Search → Extract available insights → Summarize based on actual sources only"
+        "## REQUIRED OUTPUT FORMAT:\n"
+        "1. **Summary**: Brief overview of all retrieved information\n"
+        "2. **Sources**: For each source, provide:\n"
+        "   [Source Name](URL): Concise description of what this source covers\n"
+        "3. **Assessment**: Evaluate the information quality:\n"
+        "   - Is the information useful and relevant?\n"
+        "   - How detailed are the results?\n"
+        "   - What are the limitations?\n\n"
+        "## WORKFLOW:\n"
+        "Search → Generate Results which includes [Summarize snippets → List source overviews → Assess quality and limitations]\n\n"
+        "**IMPORTANT**: Base all outputs strictly on retrieved search results. Never generate unsupported information."
     ),
     name="research_agent",
 )

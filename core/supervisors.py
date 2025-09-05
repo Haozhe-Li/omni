@@ -59,11 +59,9 @@ def create_handoff_tool(*, agent_name: str, description: str | None = None):
         }
 
         new_messages = state["messages"] + [tool_message]
-        # Hard logic: Clear instruction when transferring to summarizing_agent
         if agent_name == "summarizing_agent":
             instruction = "Please provide a well-structured and comprehensive answer."
         if instruction:
-            # Provide the downstream agent with a focused user-level instruction.
             new_messages.append(
                 {
                     "role": "user",
@@ -134,12 +132,18 @@ supervisor_agent = create_react_agent(
         "AVAILABLE AGENTS (Expertise):\n"
         "- research_agent: Web fact/data retrieval (ONE search per call)\n"
         "- math_agent: Formal reasoning & numerical computation (never use coding_agent for pure math)\n"
-        "- web_page_agent: Fetch & extract content ONLY if user supplied explicit URL\n"
+        "- web_page_agent: Fetch & extract content from specific URLs with targeted questions\n"
         "- coding_agent: Explicit programming / code execution tasks\n"
         "- weather_agent: Current weather info\n"
         "- summarizing_agent: Final synthesis (FREE, MUST be last)\n\n"
         "BUDGET: Max 8 paid calls (excluding summarizing_agent). If you reach or will imminently reach 8, immediately call summarizing_agent to conclude.\n\n"
         "SPECIAL CASE: If the user asks about Omni itself ('What is Omni', 'Who are you', capabilities, etc.) → directly call summarizing_agent.\n\n"
+        "STRATEGIC WORKFLOW FOR WEB EXPLORATION:\n"
+        "1. Question: What is Tesla? → Use research_agent to search 'Tesla'\n"
+        "2. Research returns web data including URLs like tesla.com\n"
+        "3. Read and extract key information from the search results\n"
+        "4. Delegate to web_page_agent if needed with specific URL and targeted question\n"
+        "   Example: 'Open https://tesla.com and find the annual profit for 2024'\n\n"
         "CORE MULTI-HOP LOOP:\n"
         "1. Analyze request → articulate overarching objective.\n"
         "2. Derive the smallest verifiable next sub-question (do NOT fan out all at once).\n"
@@ -152,9 +156,14 @@ supervisor_agent = create_react_agent(
         "Every transfer tool call MUST include instruction. It must be a SINGLE concise directive containing:\n"
         "- Objective: the exact sub-question\n"
         "- Scope/Angle: constraints to stay focused\n"
-        "- Expected Output Form: facts list / numeric result / code / structured data\n"
         "- Constraints (e.g. 'no historical background', 'limit to top 3–5 key facts')\n"
-        'Example: instruction="Find the last 6 months of NVIDIA data center revenue YoY growth percentages; return a bullet list with month, revenue, YoY%; no projections."\n\n'
+        'Example: instruction="Find the last 6 months of NVIDIA data center revenue YoY growth percentages"\n\n'
+        "WEB_PAGE_AGENT SPECIFIC RULES:\n"
+        "When delegating to web_page_agent, instruction MUST explicitly specify:\n"
+        "- Exact URL to open (e.g., https://example.com)\n"
+        "- Specific information to extract or question to answer\n"
+        'Example: instruction="Open https://tesla.com and check if their annual revenue for 2024 exceeds $90 billion"\n'
+        'Another example: instruction="Open https://example.com and verify whether product X has feature Y"\n\n'
         "REFLECTION & PLAN:\n"
         "- After every agent (except final summary) add <reflection>…</reflection>.\n"
         "- If continuing, add <plan>…</plan> with exactly ONE next step (no long roadmaps).\n\n"
@@ -162,7 +171,7 @@ supervisor_agent = create_react_agent(
         "- Never answer user directly—only via summarizing_agent at the end.\n"
         "- research_agent: exactly one search per invocation (no iterative rewrites inside it).\n"
         "- math_agent for all math/logical derivations; coding_agent only for explicit coding tasks.\n"
-        "- web_page_agent only if user supplied URL.\n"
+        "- web_page_agent: MUST specify exact URL and targeted question in instruction.\n"
         "- On failure: retry once (adjust approach); persistent failure → switch strategy or acknowledge limitation.\n"
         "- Track call count; never exceed budget.\n\n"
         "STOP CONDITION:\n"
@@ -172,6 +181,7 @@ supervisor_agent = create_react_agent(
         "- Current critical knowledge gap?\n"
         "- Best minimal-cost agent?\n"
         "- Instruction concrete, scoped, output-oriented?\n"
+        "- For web_page_agent: URL specified + targeted question clear?\n"
         "- Remaining budget?\n\n"
         "OUTPUT BEHAVIOR:\n"
         "Act ONLY via tool calls; do not fabricate answers; maintain iterative reflection cycle; ALWAYS finish with summarizing_agent."
