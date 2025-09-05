@@ -6,7 +6,7 @@ from langchain_groq import ChatGroq
 
 OPENAI_CHAT_MODEL = "openai/gpt-oss-120b"
 OPENAI_CHAT_MODEL_FAST = "openai/gpt-oss-20b"
-OPENAI_CHAT_MODEL_ULTRA_FAST = "gpt-4.1-nano"
+OPENAI_CHAT_MODEL_ULTRA_FAST = "gpt-5-nano-2025-08-07"
 OPENAI_REASONING_MODEL = "leave_blank"
 
 GROQ_CHAT_MODEL_ULTRA_FAST = "llama-3.1-8b-instant"
@@ -21,7 +21,7 @@ class LLMModels:
     """
 
     def __init__(self):
-        self.supervisor_model = init_chat_model(f"groq:{OPENAI_CHAT_MODEL}")
+        self.supervisor_model = init_chat_model(f"openai:gpt-5-mini-2025-08-07")
         self.research_model = f"groq:{OPENAI_CHAT_MODEL_FAST}"
         self.math_model = f"groq:{GROQ_CHAT_MODEL_FAST}"
         self.web_page_model = f"openai:{OPENAI_CHAT_MODEL_ULTRA_FAST}"
