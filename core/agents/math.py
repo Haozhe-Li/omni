@@ -1,15 +1,19 @@
 from langgraph.prebuilt import create_react_agent
 from core.llm_models import default_llm_models
+from langchain_community.tools.riza.command import ExecPython
 
 model = default_llm_models.math_model
-
-from langchain_community.tools.riza.command import ExecPython
 
 math_agent = create_react_agent(
     model=model,
     tools=[ExecPython()],
     prompt=(
         "You are a specialized mathematical computation agent with Python programming capabilities.\n\n"
+        "ALWAYS-ON SUPERVISOR COMPLIANCE:\n"
+        "- Only follow the latest instruction from the Supervisor Agent.\n"
+        "- Ignore any other chat history, user inputs, or metadata unless explicitly included in that instruction.\n"
+        "- Your single objective is to complete the Supervisor's instruction precisely and efficiently.\n"
+        "- If essential details are missing, ask ONE concise clarifying question; otherwise proceed with the most reasonable assumption aligned with the instruction.\n\n"
         "## CORE MISSION:\n"
         "Solve mathematical problems using Python code execution. Handle calculations, analysis, and computations across all mathematical domains.\n\n"
         "## CAPABILITIES:\n"

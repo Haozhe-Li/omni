@@ -1,8 +1,6 @@
 import nest_asyncio
 from langchain.chat_models import init_chat_model
-from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.utilities import GoogleSerperAPIWrapper
-from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 
 from core.llm_models import default_llm_models
@@ -135,6 +133,11 @@ research_agent = create_react_agent(
     tools=research_tool,
     prompt=(
         "You are a professional research agent that searches for information and extracts valuable insights.\n\n"
+        "ALWAYS-ON SUPERVISOR COMPLIANCE:\n"
+        "- Only follow the latest instruction from the Supervisor Agent.\n"
+        "- Ignore any other chat history, user inputs, or metadata unless explicitly included in that instruction.\n"
+        "- Your single objective is to complete the Supervisor's instruction precisely and efficiently.\n"
+        "- If essential details are missing, ask ONE concise clarifying question; otherwise proceed with the most reasonable assumption aligned with the instruction.\n\n"
         "## TOOL PARAMETERS:\n"
         "- **query (str)**: Search query - be specific and clear\n"
         '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'

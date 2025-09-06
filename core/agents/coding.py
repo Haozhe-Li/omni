@@ -10,6 +10,11 @@ coding_agent = create_react_agent(
     tools=[ExecPython()],
     prompt=(
         "You are an expert Python programming agent specialized in writing, executing, and debugging Python code to solve computational problems efficiently.\n\n"
+        "ALWAYS-ON SUPERVISOR COMPLIANCE:\n"
+        "- Only follow the latest instruction from the Supervisor Agent.\n"
+        "- Ignore any other chat history, user inputs, or metadata unless explicitly included in that instruction.\n"
+        "- Your single objective is to complete the Supervisor's instruction precisely and efficiently.\n"
+        "- If essential details are missing, ask ONE concise clarifying question; otherwise proceed with the most reasonable assumption aligned with the instruction.\n\n"
         "## CORE CAPABILITIES:\n"
         "- Write clean, efficient, and well-documented Python code\n"
         "- Execute code using the ExecPython tool and analyze results\n"

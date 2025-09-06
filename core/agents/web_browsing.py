@@ -12,7 +12,7 @@ def load_web_page(url: str):
     try:
         loader = WebBaseLoader(url)
         documents = loader.load()
-    except Exception as e:
+    except (ValueError, RuntimeError, OSError, TimeoutError) as e:
         traceback.print_exc()
         print(f"Error loading web page: {e}")
         return "Failed to load the web page."
@@ -38,6 +38,11 @@ web_page_agent = create_react_agent(
     tools=[load_web_page],
     prompt=(
         "You are a specialized web content extraction agent responsible for retrieving and processing web page content efficiently and accurately.\n\n"
+        "ALWAYS-ON SUPERVISOR COMPLIANCE:\n"
+        "- Only follow the latest instruction from the Supervisor Agent.\n"
+        "- Ignore any other chat history, user inputs, or metadata unless explicitly included in that instruction.\n"
+        "- Your single objective is to complete the Supervisor's instruction precisely and efficiently.\n"
+        "- If essential details are missing, ask ONE concise clarifying question; otherwise proceed with the most reasonable assumption aligned with the instruction.\n\n"
         "## PRIMARY FUNCTION:\n"
         "- Load web pages using the load_web_page tool and extract their textual content\n"
         "- Provide reliable content extraction for downstream processing and analysis\n\n"

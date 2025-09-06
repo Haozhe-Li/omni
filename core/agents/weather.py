@@ -2,7 +2,6 @@ import traceback
 
 from langchain.chat_models import init_chat_model
 from langchain_community.utilities import OpenWeatherMapAPIWrapper
-from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 
 from core.llm_models import default_llm_models
@@ -33,7 +32,7 @@ def get_current_weather(location: str) -> str:
         }
         ss.set_sources([source])
         return str(weather.run(location))
-    except Exception as e:
+    except (ValueError, RuntimeError, OSError, TimeoutError) as e:
         traceback.print_exc()
         return f"Error fetching weather data: {e}"
 
@@ -54,6 +53,11 @@ weather_agent = create_react_agent(
     tools=weather_tool,
     prompt=(
         "You are a weather assistant. Your task is to provide accurate weather information for locations.\n\n"
+        "ALWAYS-ON SUPERVISOR COMPLIANCE:\n"
+        "- Only follow the latest instruction from the Supervisor Agent.\n"
+        "- Ignore any other chat history, user inputs, or metadata unless explicitly included in that instruction.\n"
+        "- Your single objective is to complete the Supervisor's instruction precisely and efficiently.\n"
+        "- If essential details are missing, ask ONE concise clarifying question; otherwise proceed with the most reasonable assumption aligned with the instruction.\n\n"
         "INSTRUCTIONS:\n"
         "- Use the get_current_weather tool to fetch weather data for the requested location\n"
         "- Always use English name for locations.\n"
