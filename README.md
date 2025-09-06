@@ -18,7 +18,9 @@ English | [简体中文](README_ZH.md)
 
 ## 🌟 Features
 
-Omni is an intelligent multi-agent system that orchestrates specialized AI agents to handle diverse tasks:
+**Omni Compound** is an intelligent multi-agent system that orchestrates specialized AI agents to handle diverse tasks, best for deep research:
+
+![Omni Compound Flow Chart](https://cdn.haozheli.com/omni_compound_flow.webp)
 
 ### 🔬 **Research Agent**
 
@@ -56,11 +58,58 @@ Omni is an intelligent multi-agent system that orchestrates specialized AI agent
 - Key insights extraction
 - Multi-format content processing
 
-### 🎯 **Smart Routing**
+### 🎯 **Multi-Hop Reasoning**
 
-- Intelligent agent selection based on query type
-- Seamless handoff between agents
-- Optimized response generation
+- Intelligently break down questions into several hops
+- Assign tasks to other agents
+- Dynamic information gathering, adjusting the plan in real time as necessary
+
+**Omni Light** is a lighter and much faster agent, best for quick answers:
+
+![Omni Light Flow Chart](https://cdn.haozheli.com/omni_light_flow.webp)
+
+## 🧭 Modes: Omni Compound vs Omni Light
+
+Omni supports two execution modes so you can trade depth for speed depending on the task:
+
+- Omni Compound (mode: `supervisor`)
+
+  - Orchestrates multiple specialized agents (Research, Coding, Math, Web, Weather, Summarizing)
+  - Best for complex, multi-hop reasoning, research, and tool use
+  - Pros: deeper analysis, dynamic planning and delegation, aggregated sources
+  - Cons: higher latency and token usage
+
+- Omni Light (mode: `light`)
+  - A single, lightweight agent optimized for fast answers and chat
+  - Uses semantic cache by default for low latency responses
+  - Pros: very fast, cost-efficient for short queries
+  - Cons: less multi-step reasoning vs. Compound
+
+How to call the API
+
+- Compound mode
+
+  ```bash
+  curl -X POST "http://localhost:8000/stream" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "messages": [{"role": "user", "content": "Plan a weekend trip to Kyoto with must-see spots."}],
+      "mode": "supervisor",
+      "useCache": true
+    }'
+  ```
+
+- Light mode
+
+  ```bash
+  curl -X POST "http://localhost:8000/stream" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "messages": [{"role": "user", "content": "What time is sunset in Tokyo today?"}],
+      "mode": "light",
+      "location": "Tokyo, Japan"
+    }'
+  ```
 
 ## 🚀 Quick Start
 
@@ -135,7 +184,7 @@ curl -X POST "http://localhost:8000/stream" \
 Get intelligent autocomplete suggestions:
 
 ```bash
-curl -X POST "http://localhost:8000/autocomplete" \
+curl -X POST "http://localhost:8000/autocomplete/suggest" \
   -H "Content-Type: application/json" \
   -d '{
     "prefix": "what is the weather",
@@ -197,10 +246,7 @@ OPENWEATHERMAP_API_KEY=your_weather_api_key
 INGEST_CACHE=true
 ```
 
-### Agent Modes
-
-- **`supervisor`**: Full multi-agent system with intelligent routing
-- **`light`**: Lightweight single-agent mode for faster responses
+<!-- Agent Modes section consolidated into "Modes: Omni Compound vs Omni Light" above -->
 
 ## 📊 Performance Features
 
