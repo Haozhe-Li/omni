@@ -195,20 +195,20 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
         return None, text
 
     def _split_summarizing(text: str) -> Iterable[Tuple[str, str]]:
-        """Special handling for summarizing_agent containing <think> tags.
+        """Special handling for question_answering_agent containing <think> tags.
 
-        Yields tuples of (key, value). First the thinking part with key 'summarizing_agent',
+        Yields tuples of (key, value). First the thinking part with key 'question_answering_agent',
         then the final answer with key 'answer'. If no think tags, fall back to single event.
         """
         if "<think>" in text and "</think>" in text:
             think_part = text.split("<think>", 1)[1].split("</think>", 1)[0].strip()
             answer_part = text.split("</think>", 1)[1].strip()
             if think_part:
-                yield ("summarizing_agent", think_part)
+                yield ("question_answering_agent", think_part)
             if answer_part:
                 yield ("answer", answer_part)
         else:
-            yield ("summarizing_agent", text.strip())
+            yield ("question_answering_agent", text.strip())
 
     def _normalize_event(agent: str | None, content: str) -> Iterable[Tuple[str, str]]:
         """Normalize a single raw message part into one or more (key, value) events."""
@@ -219,7 +219,7 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
             "<delegation_instruction"
         ):
             agent = "supervisor_agent"
-        if agent == "summarizing_agent":
+        if agent == "question_answering_agent":
             yield from _split_summarizing(content)
         else:
             key = agent if agent else "content"
@@ -271,20 +271,20 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
         return None, text
 
     def _split_summarizing(text: str) -> Iterable[Tuple[str, str]]:
-        """Special handling for summarizing_agent containing <think> tags.
+        """Special handling for question_answering_agent containing <think> tags.
 
-        Yields tuples of (key, value). First the thinking part with key 'summarizing_agent',
+        Yields tuples of (key, value). First the thinking part with key 'question_answering_agent',
         then the final answer with key 'answer'. If no think tags, fall back to single event.
         """
         if "<think>" in text and "</think>" in text:
             think_part = text.split("<think>", 1)[1].split("</think>", 1)[0].strip()
             answer_part = text.split("</think>", 1)[1].strip()
             if think_part:
-                yield ("summarizing_agent", think_part)
+                yield ("question_answering_agent", think_part)
             if answer_part:
                 yield ("answer", answer_part)
         else:
-            yield ("summarizing_agent", text.strip())
+            yield ("question_answering_agent", text.strip())
 
     def _normalize_event(agent: str | None, content: str) -> Iterable[Tuple[str, str]]:
         """Normalize a single raw message part into one or more (key, value) events."""
@@ -295,7 +295,7 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
             "<delegation_instruction"
         ):
             agent = "supervisor_agent"
-        if agent == "summarizing_agent":
+        if agent == "question_answering_agent":
             yield from _split_summarizing(content)
         else:
             key = agent if agent else "content"
@@ -322,7 +322,11 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                             if last_light_agent is not None:
                                 yield f"data: {json.dumps({'light_agent': last_light_agent}, ensure_ascii=False)}\n\n"
                                 last_light_agent = None
-                            yield f"data: {json.dumps({key: value}, ensure_ascii=False)}\n\n"
+                            # Handle supervisor key as answer
+                            if key == "supervisor":
+                                yield f"data: {json.dumps({'answer': value}, ensure_ascii=False)}\n\n"
+                            else:
+                                yield f"data: {json.dumps({key: value}, ensure_ascii=False)}\n\n"
 
             # After streaming all chunks, if there is a remaining light_agent message, treat it as final answer
             if last_light_agent is not None:

@@ -10,7 +10,7 @@ from core.agents.research import research_agent
 from core.agents.math import math_agent
 from core.agents.web_browsing import web_page_agent
 from core.agents.coding import coding_agent
-from core.agents.summarizing import summarizing_agent
+from core.agents.summarizing import question_answering_agent
 from core.agents.weather import weather_agent
 
 
@@ -53,7 +53,7 @@ def create_handoff_tool(*, agent_name: str, description: str | None = None):
         }
 
         new_messages = state["messages"] + [tool_message]
-        if agent_name == "summarizing_agent":
+        if agent_name == "question_answering_agent":
             instruction = "Please provide a well-structured and comprehensive answer."
         if instruction:
             new_messages.append(
@@ -99,9 +99,9 @@ assign_to_coding_agent = create_handoff_tool(
     description="Assign task to a coding agent.",
 )
 
-assign_to_summarizing_agent = create_handoff_tool(
-    agent_name="summarizing_agent",
-    description="Assign task to a summarizing agent.",
+assign_to_question_answering_agent = create_handoff_tool(
+    agent_name="question_answering_agent",
+    description="Assign task to a question answering agent.",
 )
 
 assign_to_weather_agent = create_handoff_tool(
@@ -113,45 +113,35 @@ tools = [
     assign_to_math_agent,
     assign_to_web_page_agent,
     assign_to_coding_agent,
-    assign_to_summarizing_agent,
+    assign_to_question_answering_agent,
     assign_to_weather_agent,
 ]
+
 supervisor_agent = create_react_agent(
     model=default_llm_models.supervisor_model,
     tools=tools,
     prompt=(
-        "OMNI SUPERVISOR — Planner & Delegator\n\n"
-        "Goal: Solve the user's request with minimal-cost multi-hop reasoning. Delegate exactly one focused subtask per step.\n"
-        "MANDATORY: You must ALWAYS end by calling summarizing_agent. Never answer the user directly yourself.\n\n"
-        "Agents:\n"
-        "- research_agent — web search (exactly ONE search per call).\n"
-        "- web_page_agent — open a specific URL and extract a targeted answer.\n"
-        "- math_agent — formal math/logic (do not use coding_agent for pure math).\n"
-        "- coding_agent — programming or code execution tasks.\n"
-        "- weather_agent — current weather.\n"
-        "- summarizing_agent — final synthesis (FREE, mandatory last call).\n\n"
-        "Budget: Max 8 paid calls (excluding summarizing_agent). If you reach or will reach 8 on the next step, call summarizing_agent immediately.\n\n"
-        "Loop per step:\n"
-        "1) State the current objective.\n"
-        "2) Pick the single best agent for the smallest verifiable next sub-question.\n"
-        "3) Call transfer_to_<agent> with { instruction: '...' }.\n"
-        "4) After the agent returns, add <reflection>...</reflection> on what you learned and what's missing.\n"
-        "5) If more is needed, add a one-step <plan>...</plan> and continue; otherwise call summarizing_agent.\n\n"
-        "Instruction (required for every transfer):\n"
-        "- Objective: exact sub-question\n"
-        "- Scope: constraints to stay focused\n"
-        "- Output: expected form (e.g., 3–5 bullet facts, number, code)\n"
-        'Example: instruction="Find NVIDIA data center revenue YoY growth for the last 6 months."\n\n'
-        "web_page_agent instruction must include:\n"
-        "- Exact URL (e.g., https://example.com)\n"
-        "- The specific item to verify/extract\n"
-        'Example: instruction="Open https://tesla.com and confirm whether 2024 revenue > $90B."\n\n'
-        "Rules:\n"
-        "- Use tools only; do not fabricate.\n"
-        "- Retry once on failure; if still blocked, switch strategy or acknowledge limits, then move to summarizing_agent.\n"
-        "- Track call count; never exceed budget.\n"
-        "- If the user asks about Omni itself, go directly to summarizing_agent.\n\n"
-        "Stop: When core sub-questions are answered or marginal value is low, call summarizing_agent to produce the final answer."
+        "You are an intelligent task coordinator. Your role is to analyze user requests and delegate tasks to the most appropriate specialized agents.\n\n"
+        "Available Agents:\n"
+        "- research_agent: Web search and information gathering\n"
+        "- web_page_agent: Extract information from specific URLs\n"
+        "- math_agent: Mathematical calculations and logical reasoning\n"
+        "- coding_agent: Programming and code execution\n"
+        "- weather_agent: Current weather information\n"
+        "- question_answering_agent: Final answer synthesis and formatting\n\n"
+        "Instructions:\n"
+        "1. Analyze the user's request to understand what they need\n"
+        "2. Choose the most appropriate agent for the task\n"
+        "3. Provide clear, specific instructions to the selected agent\n"
+        "4. Always end by calling question_answering_agent to provide the final answer\n\n"
+        "When delegating tasks:\n"
+        "- Be specific about what information is needed\n"
+        "- Include any relevant context or constraints\n"
+        "- Specify the expected format of the response\n\n"
+        "For web_page_agent, always include:\n"
+        "- The exact URL to visit\n"
+        "- What specific information to extract\n\n"
+        "Always call question_answering_agent as your final step to provide a complete answer to the user."
     ),
     name="supervisor",
 )
@@ -167,7 +157,7 @@ supervisor = (
             "math_agent",
             "web_page_agent",
             "coding_agent",
-            "summarizing_agent",
+            "question_answering_agent",
             "weather_agent",
         ),
     )
@@ -175,7 +165,7 @@ supervisor = (
     .add_node(math_agent)
     .add_node(web_page_agent)
     .add_node(coding_agent)
-    .add_node(summarizing_agent)
+    .add_node(question_answering_agent)
     .add_node(weather_agent)
     .add_edge(START, "supervisor")
     .add_edge("research_agent", "supervisor")
@@ -183,6 +173,6 @@ supervisor = (
     .add_edge("web_page_agent", "supervisor")
     .add_edge("coding_agent", "supervisor")
     .add_edge("weather_agent", "supervisor")
-    .add_edge("summarizing_agent", END)
+    .add_edge("question_answering_agent", END)
     .compile()
 )

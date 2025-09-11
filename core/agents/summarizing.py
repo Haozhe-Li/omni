@@ -3,7 +3,7 @@ from core.llm_models import default_llm_models
 
 model = default_llm_models.summarizing_model
 
-summarizing_agent = create_react_agent(
+question_answering_agent = create_react_agent(
     model=model,
     tools=[],
     prompt=(
@@ -58,5 +58,5 @@ summarizing_agent = create_react_agent(
         "- Write directly without meta-commentary\n\n"
         "Create professional reports that directly answer user questions using provided research and context."
     ),
-    name="summarizing_agent",
+    name="question_answering_agent",
 )

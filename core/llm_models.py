@@ -4,14 +4,16 @@ from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 
-GPT_OSS_120B = "openai/gpt-oss-120b"
-GPT_OSS_20B = "openai/gpt-oss-20b"
-GPT_4_1_NANO = "gpt-4.1-nano"
+GPT_OSS_120B = "groq:openai/gpt-oss-120b"
+GPT_OSS_20B = "groq:openai/gpt-oss-20b"
+GPT_4_1_NANO = "openai:gpt-4.1-nano"
+GPT_4_1 = "openai:gpt-4.1"
+GPT_5_1_NANO = "openai:gpt-5-nano-2025-08-07"
 
 LLAMA_3_1_8B_INSTANT = "llama-3.1-8b-instant"
-LLAMA_4_MAVERICK = "meta-llama/llama-4-maverick-17b-128e-instruct"
-LLAMA_4_SCOUT = "meta-llama/llama-4-scout-17b-16e-instruct"
-QWEN_32B = "qwen/qwen3-32b"
+LLAMA_4_MAVERICK = "groq:meta-llama/llama-4-maverick-17b-128e-instruct"
+LLAMA_4_SCOUT = "groq:meta-llama/llama-4-scout-17b-16e-instruct"
+QWEN_32B = "groq:qwen/qwen3-32b"
 
 
 class LLMModels:
@@ -20,20 +22,18 @@ class LLMModels:
     """
 
     def __init__(self):
-        self.supervisor_model = init_chat_model(
-            f"groq:{GPT_OSS_120B}", reasoning_effort="high"
-        )
-        self.research_model = f"groq:{GPT_OSS_20B}"
-        self.math_model = f"groq:{LLAMA_4_SCOUT}"
-        self.web_page_model = f"openai:{GPT_4_1_NANO}"
-        self.coding_model = f"openai:{GPT_4_1_NANO}"
+        self.supervisor_model = GPT_OSS_120B
+        self.research_model = f"{GPT_OSS_20B}"
+        self.math_model = f"{LLAMA_4_SCOUT}"
+        self.web_page_model = f"{GPT_4_1_NANO}"
+        self.coding_model = f"{GPT_4_1_NANO}"
         self.suggestion_model = ChatGroq(
             model=LLAMA_3_1_8B_INSTANT
         ).with_structured_output(method="json_mode")
-        self.summarizing_model = f"groq:{QWEN_32B}"
-        self.weather_model = f"openai:{GPT_4_1_NANO}"
+        self.summarizing_model = f"{QWEN_32B}"
+        self.weather_model = f"{GPT_4_1_NANO}"
         self.light_agent_model = init_chat_model(
-            f"groq:{GPT_OSS_20B}", reasoning_effort="low"
+            f"{GPT_OSS_20B}", reasoning_effort="low"
         )
 
 
