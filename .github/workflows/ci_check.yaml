@@ -32,5 +32,7 @@ jobs:
           OPENWEATHERMAP_API_KEY: ${{ secrets.OPENWEATHERMAP_API_KEY }}
           QDRANT_URL: ${{ secrets.QDRANT_URL }}
           QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          pytest ./tests/test_ci_github_actions.py
+          cd ${{ github.workspace }}
+          pytest ./tests/test_ci_github_actions.py -v
