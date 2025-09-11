@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  pytest-job:
+  pytest-ci-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,4 +33,4 @@ jobs:
           QDRANT_URL: ${{ secrets.QDRANT_URL }}
           QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
         run: |
-          pytest test_ci_github_actions.py
+          pytest ./tests/test_ci_github_actions.py
