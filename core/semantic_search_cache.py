@@ -119,6 +119,7 @@ class SemanticSearchCache:
                     "snippet": point.payload.get("snippet", ""),
                     "query": point.payload.get("query", ""),
                     "aviod_cache": True,
+                    "from_cache": True,
                 }
                 for point in results.points
             ]

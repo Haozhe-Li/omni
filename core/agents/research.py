@@ -15,6 +15,9 @@ model = init_chat_model(default_llm_models.research_model)
 def web_search(
     querys: list[str], k: int = 5, tbs: str = ""
 ) -> tuple[list[dict], str, dict]:
+    # concat queries if it is more than 5
+    if len(querys) > 5:
+        querys = querys[:5]
     print(f"Performing web search for queries: {querys}")
     if not tbs:
         search = GoogleSerperAPIWrapper(k=k)
@@ -62,7 +65,7 @@ def research(queries: list[str], time_level: str = "", use_cache: bool = True) -
     for query in queries:
         if use_cache and time_level not in ["day", "week"]:
             # Use semantic search cache if available
-            cached_sources = semantic_cache.get(query, threshold=0.9)
+            cached_sources = semantic_cache.get(query, threshold=0.2)
             if cached_sources:
                 print(f"Using cached sources for query: {query}")
                 all_sources.extend(cached_sources)
@@ -138,14 +141,12 @@ research_agent = create_react_agent(
         "- Ignore any other chat history, user inputs, or metadata unless explicitly included in that instruction.\n"
         "- Your single objective is to complete the Supervisor's instruction precisely and efficiently.\n"
         "- If essential details are missing, ask ONE concise clarifying question; otherwise proceed with the most reasonable assumption aligned with the instruction.\n\n"
+        "## CRITICAL CONSTRAINTS for Queries:\n"
+        "- You MUST generate no more than 5 queries.\n"
         "## TOOL PARAMETERS:\n"
         "- **queries (list[str])**: List of search queries - generate 2-5 specific, focused queries\n"
         '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'
         "- **use_cache (bool)**: True (cached) / False (fresh search, default: True)\n\n"
-        "## SINGLE TOOL CALL RESTRICTION:\n"
-        "- **CRITICAL**: You MUST call the research tool ONCE per request\n"
-        "- Generate all necessary queries in one call\n"
-        "- The tool will return results directly - no further processing needed\n\n"
         "## QUERY GENERATION STRATEGY:\n"
         "- Keep queries BROAD enough to find results (not too specific)\n"
         "- Keep queries SHORT and focused (avoid long sentences)\n"
@@ -158,7 +159,7 @@ research_agent = create_react_agent(
         '- Monthly/annual data: time_level="month"/"year"\n'
         '- Cache auto-disabled for "day"/"week" searches\n\n'
         "## WORKFLOW:\n"
-        "Analyze request → Generate broad, short queries → Call research tool ONCE\n\n"
+        "Analyze request → Generate broad, short queries → Call research tool\n\n"
         "**IMPORTANT**: Focus solely on generating effective search queries. Results will be returned directly."
     ),
     name="research_agent",
