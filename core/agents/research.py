@@ -2,6 +2,7 @@ import nest_asyncio
 from langchain.chat_models import init_chat_model
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langgraph.prebuilt import create_react_agent
+from langchain_core.tools import tool
 
 from core.llm_models import default_llm_models
 from core.semantic_search_cache import semantic_cache
@@ -28,12 +29,12 @@ def web_search(
     return results, answer_box, knowledge_graph
 
 
-# @tool(return_direct=True)
-def research(query: str, time_level: str = "", use_cache: bool = True) -> dict:
-    """Research a topic using web search and return the context.
+@tool(return_direct=True)
+def research(queries: list[str], time_level: str = "", use_cache: bool = True) -> dict:
+    """Research topics using web search and return the context.
 
     Args:
-        query (str): The query to search for.
+        queries (list[str]): The list of queries to search for.
         time_level (str): The time level for the search. For most of the time you would not use this parameter.
                           Available options are "day", "week", "month", "year".
                           Not passing this parameter will use the default which search results for anytime.
@@ -55,115 +56,110 @@ def research(query: str, time_level: str = "", use_cache: bool = True) -> dict:
     }
     tbs = time_level_map.get(time_level, "")
 
-    if use_cache and time_level not in ["day", "week"]:
-        # Use semantic search cache if available
-        cached_sources = semantic_cache.get(query, threshold=0.9)
-        if cached_sources:
-            print(f"Using cached sources for query: {query}")
-            ss.set_sources(cached_sources)
-            context = "\n\n".join(
-                f"{source['title']}: {source['snippet']} ({source['url']})"
-                for source in cached_sources
-            )
-            return context
+    # For multiple queries, we'll collect all results
+    all_sources = []
 
-    search_results, answer_box, knowledge_graph = web_search(
-        querys=[query], k=5, tbs=tbs
-    )
-    if not search_results:
+    for query in queries:
+        if use_cache and time_level not in ["day", "week"]:
+            # Use semantic search cache if available
+            cached_sources = semantic_cache.get(query, threshold=0.9)
+            if cached_sources:
+                print(f"Using cached sources for query: {query}")
+                all_sources.extend(cached_sources)
+                continue
+
+        search_results, answer_box, knowledge_graph = web_search(
+            querys=[query], k=5, tbs=tbs
+        )
+        if not search_results:
+            continue
+
+        urls = [result["link"] for result in search_results]
+        # assign sources variable, sources is a list of key: value pairs
+        sources = [
+            {
+                "query": query,
+                "url": url,
+                "title": result["title"],
+                "snippet": result["snippet"],
+                "aviod_cache": use_cache,
+            }
+            for url, result in zip(urls, search_results)
+        ]
+        all_sources.extend(sources)
+
+        # Handle answer_box and knowledge_graph for each query
+        if answer_box:
+            all_sources.append(
+                {
+                    "query": query,
+                    "url": answer_box.get("sourceLink", "N/A"),
+                    "title": answer_box.get("title"),
+                    "snippet": answer_box.get("answer"),
+                    "aviod_cache": use_cache,
+                }
+            )
+        if knowledge_graph:
+            all_sources.append(
+                {
+                    "query": query,
+                    "url": knowledge_graph.get("descriptionLink", "N/A"),
+                    "title": knowledge_graph.get("Apple", "N/A"),
+                    "snippet": knowledge_graph.get("description", ""),
+                    "aviod_cache": use_cache,
+                }
+            )
+
+    if not all_sources:
         return "No search results found."
-    urls = [result["link"] for result in search_results]
-    # assign sources variable, sources is a list of key: value pairs
-    sources = [
-        {
-            "query": query,
-            "url": url,
-            "title": result["title"],
-            "snippet": result["snippet"],
-            "aviod_cache": use_cache,
-        }
-        for url, result in zip(urls, search_results)
-    ]
-    # concat all result snippet together as context
-    context = "Context Snippets:\n\n".join(
-        result["snippet"] for result in search_results
-    )
-    if answer_box:
-        context = (
-            f"Answer from Google, refer this answer directly: {answer_box.get('answer')}\n\n"
-            + context
-        )
-        sources.append(
-            {
-                "url": answer_box.get("sourceLink", "N/A"),
-                "title": answer_box.get("title"),
-                "snippet": answer_box.get("answer"),
-                "aviod_cache": use_cache,
-            }
-        )
-    if knowledge_graph:
-        context = (
-            f"Knowledge Graph: {knowledge_graph.get('description', '')}\n\n" + context
-        )
-        sources.append(
-            {
-                "url": knowledge_graph.get("descriptionLink", "N/A"),
-                "title": knowledge_graph.get("Apple", "N/A"),
-                "snippet": knowledge_graph.get("description", ""),
-                "aviod_cache": use_cache,
-            }
-        )
-    ss.set_sources(sources)
-    return sources
+
+    ss.set_sources(all_sources)
+    return all_sources
 
 
 research_tool = [research]
 
-# bound_model = model.bind_tools(
-#     research_tool,
-#     tool_choice={
-#         "type": "function",
-#         "function": {"name": "research"},
-#     },
-# )
+bound_model = model.bind_tools(
+    research_tool,
+    tool_choice={
+        "type": "function",
+        "function": {"name": "research"},
+    },
+)
 
 
 research_agent = create_react_agent(
-    model=model,
+    model=bound_model,
     tools=research_tool,
     prompt=(
-        "You are a professional research agent that searches for information and extracts valuable insights.\n\n"
+        "You are a professional research agent that generates effective search queries.\n\n"
         "ALWAYS-ON SUPERVISOR COMPLIANCE:\n"
         "- Only follow the latest instruction from the Supervisor Agent.\n"
         "- Ignore any other chat history, user inputs, or metadata unless explicitly included in that instruction.\n"
         "- Your single objective is to complete the Supervisor's instruction precisely and efficiently.\n"
         "- If essential details are missing, ask ONE concise clarifying question; otherwise proceed with the most reasonable assumption aligned with the instruction.\n\n"
         "## TOOL PARAMETERS:\n"
-        "- **query (str)**: Search query - be specific and clear\n"
+        "- **queries (list[str])**: List of search queries - generate 2-5 specific, focused queries\n"
         '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'
         "- **use_cache (bool)**: True (cached) / False (fresh search, default: True)\n\n"
         "## SINGLE TOOL CALL RESTRICTION:\n"
         "- **CRITICAL**: You MUST call the research tool ONCE per request\n"
-        "- Do NOT retry with different parameters if results are poor\n"
-        "- Do NOT skip research tool to answer questions directly\n"
-        "- Work with whatever information you receive from the single search\n\n"
-        "## SEARCH STRATEGY:\n"
+        "- Generate all necessary queries in one call\n"
+        "- The tool will return results directly - no further processing needed\n\n"
+        "## QUERY GENERATION STRATEGY:\n"
+        "- Keep queries BROAD enough to find results (not too specific)\n"
+        "- Keep queries SHORT and focused (avoid long sentences)\n"
+        "- Generate 2-5 complementary queries that cover different aspects\n"
+        "- Use keywords rather than full questions\n"
+        "- Avoid overly narrow or technical terms that might return no results\n\n"
+        "## TIME SENSITIVITY:\n"
         '- Breaking news: time_level="day"\n'
         '- Recent trends: time_level="week"\n'
         '- Monthly/annual data: time_level="month"/"year"\n'
-        "- Choose parameters carefully - you only get one attempt\n"
         '- Cache auto-disabled for "day"/"week" searches\n\n'
-        "## REQUIRED OUTPUT FORMAT:\n"
-        "1. **Summary**: Brief overview of all retrieved information\n"
-        "2. **Sources**: For each source, provide:\n"
-        "   [Source Name](URL): Concise description of what this source covers\n"
-        "3. **Assessment**: Evaluate the information quality:\n"
-        "   - Is the information useful and relevant?\n"
-        "   - How detailed are the results?\n"
-        "   - What are the limitations?\n\n"
         "## WORKFLOW:\n"
-        "Search → Generate Results which includes [Summarize snippets → List source overviews → Assess quality and limitations]\n\n"
-        "**IMPORTANT**: Base all outputs strictly on retrieved search results. Never generate unsupported information."
+        "Analyze request → Generate broad, short queries → Call research tool ONCE\n\n"
+        "**IMPORTANT**: Focus solely on generating effective search queries. Results will be returned directly."
     ),
     name="research_agent",
 )

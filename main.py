@@ -170,6 +170,8 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                 continue
             if re.search(r"Human Message", line, re.IGNORECASE):
                 continue
+            if re.search(r"Tool Message", line, re.IGNORECASE):
+                continue
             cleaned.append(line)
         return "\n".join(cleaned).strip()
 
@@ -193,6 +195,9 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
             # Map human -> supervisor for consistency with frontend expectations
             if agent == "human":
                 agent = "supervisor"
+            # Map research -> research_agent for consistency
+            if agent == "research":
+                agent = "research_agent"
             return agent, remaining
         if "Human Message" in text:
             return "supervisor", text
@@ -246,6 +251,8 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                 continue
             if re.search(r"Human Message", line, re.IGNORECASE):
                 continue
+            if re.search(r"Tool Message", line, re.IGNORECASE):
+                continue
             cleaned.append(line)
         return "\n".join(cleaned).strip()
 
@@ -269,6 +276,9 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
             # Map human -> supervisor for consistency with frontend expectations
             if agent == "human":
                 agent = "supervisor_agent"
+            # Map research -> research_agent for consistency
+            if agent == "research":
+                agent = "research_agent"
             return agent, remaining
         if "Human Message" in text:
             return "supervisor_agent", text
@@ -356,25 +366,27 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                 for result in collected_results:
                     summary_content += f"[{result['agent']}]: {result['content']}\n\n"
 
-                # 添加原始用户问题的上下文
-                if input_data.get("messages"):
-                    user_query = ""
-                    for msg in input_data["messages"]:
-                        if msg.get("role") == "user":
-                            user_query = msg.get("content", "")
-                            break
-                    if user_query:
-                        summary_content = (
-                            f"用户问题：{user_query}\n\n" + summary_content
-                        )
+                print("Summary Content:", summary_content)
 
-                # 调用 question_answering_agent 进行总结
+                # 添加原始用户问题的上下文
+                # if input_data.get("messages"):
+                #     user_query = ""
+                #     for msg in input_data["messages"]:
+                #         if msg.get("role") == "user":
+                #             user_query = msg.get("content", "")
+                #             break
+                #     if user_query:
+                #         summary_content = (
+                #             f"用户问题：{user_query}\n\n" + summary_content
+                #         )
+
                 summary_input = [
                     ("system", question_answering_sys_prompt),
                     ("user", summary_content),
                 ]
 
                 final_answer = question_answering_agent.invoke(summary_input).content
+                print("Final Answer:", final_answer)
 
                 yield f"data: {json.dumps({'answer': final_answer}, ensure_ascii=False)}\n\n"
 
