@@ -142,9 +142,9 @@ research_agent = create_react_agent(
         "- Your single objective is to complete the Supervisor's instruction precisely and efficiently.\n"
         "- If essential details are missing, ask ONE concise clarifying question; otherwise proceed with the most reasonable assumption aligned with the instruction.\n\n"
         "## CRITICAL CONSTRAINTS for Queries:\n"
-        "- You MUST generate no more than 5 queries.\n"
+        "- You MUST generate no more than 3 queries.\n"
         "## TOOL PARAMETERS:\n"
-        "- **queries (list[str])**: List of search queries - generate 2-5 specific, focused queries\n"
+        "- **queries (list[str])**: List of search queries - generate 2-3 specific, focused queries\n"
         '- **time_level (str)**: "day"/"week"/"month"/"year"/"" (default: all time)\n'
         "- **use_cache (bool)**: True (cached) / False (fresh search, default: True)\n\n"
         "## QUERY GENERATION STRATEGY:\n"
