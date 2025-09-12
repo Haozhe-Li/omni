@@ -22,15 +22,15 @@ class LLMModels:
     """
 
     def __init__(self):
-        self.supervisor_model = GPT_OSS_120B
-        self.research_model = f"{GPT_OSS_20B}"
+        self.supervisor_model = GPT_OSS_20B
+        self.research_model = GPT_4_1_NANO
         self.math_model = f"{LLAMA_4_SCOUT}"
         self.web_page_model = f"{GPT_4_1_NANO}"
         self.coding_model = f"{GPT_4_1_NANO}"
         self.suggestion_model = ChatGroq(
             model=LLAMA_3_1_8B_INSTANT
         ).with_structured_output(method="json_mode")
-        self.summarizing_model = f"{QWEN_32B}"
+        self.summarizing_model = QWEN_32B
         self.weather_model = f"{GPT_4_1_NANO}"
         self.light_agent_model = init_chat_model(
             f"{GPT_OSS_20B}", reasoning_effort="low"

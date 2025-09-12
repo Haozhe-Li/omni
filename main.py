@@ -17,6 +17,10 @@ from core.get_suggestion import SuggestionAgent
 from core.sources import ss
 from core.semantic_search_cache import semantic_cache
 from core.trie import autocomplete_trie
+from core.agents.summarizing import (
+    question_answering_agent,
+    question_answering_sys_prompt,
+)
 
 app = FastAPI(title="Omni API", description="A REST API for the Omni supervisor system")
 app.add_middleware(
@@ -304,13 +308,21 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
     async def response_generator():
         """Generate standardized streaming response events per new front-end spec."""
         try:
+            # 收集所有的结果用于最后的总结
+            collected_results = []
             last_light_agent: str | None = None
+
             for chunk in activate_agent.stream(input_data):
                 for raw in pretty_yield_messages(chunk, last_message=True):
                     agent, remainder = _extract_agent_name(raw)
                     for key, value in _normalize_event(agent, remainder):
                         if not value:
                             continue
+
+                        # 收集结果用于总结（包含所有内容）
+                        if value.strip():
+                            collected_results.append({"agent": key, "content": value})
+
                         if key == "light_agent":
                             # Buffer until we know if it's the final one
                             if last_light_agent is not None:
@@ -322,21 +334,55 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                             if last_light_agent is not None:
                                 yield f"data: {json.dumps({'light_agent': last_light_agent}, ensure_ascii=False)}\n\n"
                                 last_light_agent = None
-                            # Handle supervisor key as answer
+                            # Handle supervisor key as intermediate info
                             if key == "supervisor":
-                                yield f"data: {json.dumps({'answer': value}, ensure_ascii=False)}\n\n"
+                                yield f"data: {json.dumps({'supervisor_agent': value}, ensure_ascii=False)}\n\n"
                             else:
                                 yield f"data: {json.dumps({key: value}, ensure_ascii=False)}\n\n"
 
             # After streaming all chunks, if there is a remaining light_agent message, treat it as final answer
             if last_light_agent is not None:
+                collected_results.append(
+                    {"agent": "light_agent", "content": last_light_agent}
+                )
                 yield f"data: {json.dumps({'answer': last_light_agent}, ensure_ascii=False)}\n\n"
 
+            # 如果有收集到的结果，且不是 light_agent 模式，使用 question_answering_agent 进行总结
+            if collected_results and activate_agent != light:
+                # 构建总结的输入
+                summary_content = (
+                    "Here's the summary of the results from different agents, \n\n"
+                )
+                for result in collected_results:
+                    summary_content += f"[{result['agent']}]: {result['content']}\n\n"
+
+                # 添加原始用户问题的上下文
+                if input_data.get("messages"):
+                    user_query = ""
+                    for msg in input_data["messages"]:
+                        if msg.get("role") == "user":
+                            user_query = msg.get("content", "")
+                            break
+                    if user_query:
+                        summary_content = (
+                            f"用户问题：{user_query}\n\n" + summary_content
+                        )
+
+                # 调用 question_answering_agent 进行总结
+                summary_input = [
+                    ("system", question_answering_sys_prompt),
+                    ("user", summary_content),
+                ]
+
+                final_answer = question_answering_agent.invoke(summary_input).content
+
+                yield f"data: {json.dumps({'answer': final_answer}, ensure_ascii=False)}\n\n"
+
             # Sources (if any)
-            sourses = ss.get_sources()
-            if sourses:
-                yield f"data: {json.dumps({'sources': sourses}, ensure_ascii=False)}\n\n"
-                semantic_cache.add(sources=sourses)
+            sources = ss.get_sources()
+            if sources:
+                yield f"data: {json.dumps({'sources': sources}, ensure_ascii=False)}\n\n"
+                semantic_cache.add(sources=sources)
                 ss.clear_sources()
             # Done signal
             yield f"data: {json.dumps({'content': '[DONE]'}, ensure_ascii=False)}\n\n"
