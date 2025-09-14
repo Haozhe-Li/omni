@@ -1,6 +1,7 @@
 # For testing functionality for Github Actions CI checks
 import subprocess
 import time
+import requests
 
 
 def test_main_compile() -> None:
@@ -24,32 +25,12 @@ def test_main_import() -> None:
 def test_fastapi_server() -> None:
     """Test FastAPI server"""
     try:
-        process = subprocess.Popen(["uvicorn", "main:app", "--reload"])
-        time.sleep(2)
-        process.terminate()
-        process.wait()
+        with subprocess.Popen(["uvicorn", "main:app", "--reload"]) as process:
+            time.sleep(2)
+            res = requests.get("http://127.0.0.1:8000/health")
+            assert res.status_code == 200
+            process.terminate()
+            process.wait()
     except Exception as e:
         assert False, f"Failed to start/stop FastAPI server: {e}"
     assert True
-
-
-# def test_omni_supervisor_agent() -> None:
-#     """Test Omni Supervisor Agent"""
-#     try:
-#         from main import supervisor
-
-#         result = supervisor.invoke({"messages": [{"role": "user", "content": "Hi!"}]})
-#     except Exception as e:
-#         assert False, f"Failed to invoke supervisor: {e}"
-#     assert result is not None, f"Supervisor returned None: {result}"
-
-
-# def test_omni_light_agent() -> None:
-#     """Test Omni Light Agent"""
-#     try:
-#         from main import light
-
-#         result = light.invoke({"messages": [{"role": "user", "content": "Hi!"}]})
-#     except Exception as e:
-#         assert False, f"Failed to invoke light agent: {e}"
-#     assert result is not None, f"Light agent returned None: {result}"

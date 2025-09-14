@@ -26,7 +26,7 @@ class LLMModels:
         self.research_model = GPT_4_1_NANO
         self.math_model = f"{LLAMA_4_SCOUT}"
         self.web_page_model = f"{GPT_4_1_NANO}"
-        self.coding_model = f"{GPT_4_1_NANO}"
+        self.coding_model = GPT_OSS_120B
         self.suggestion_model = ChatGroq(
             model=LLAMA_3_1_8B_INSTANT
         ).with_structured_output(method="json_mode")
