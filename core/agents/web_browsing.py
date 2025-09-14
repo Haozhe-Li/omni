@@ -1,8 +1,9 @@
-from langchain_community.document_loaders import WebBaseLoader
 from langgraph.prebuilt import create_react_agent
 from core.sources import ss
 from core.llm_models import default_llm_models
 import traceback
+import os
+from langchain_community.document_loaders import SpiderLoader
 
 model = default_llm_models.web_page_model
 
@@ -10,11 +11,14 @@ model = default_llm_models.web_page_model
 def load_web_page(url: str):
     """Load a web page and return its content."""
     try:
-        loader = WebBaseLoader(url)
+        loader = SpiderLoader(
+            api_key=os.getenv("SPIDER_API_KEY"),
+            url=url,
+            mode="scrape",
+        )
         documents = loader.load()
-    except (ValueError, RuntimeError, OSError, TimeoutError) as e:
+    except Exception as e:
         traceback.print_exc()
-        print(f"Error loading web page: {e}")
         return "Failed to load the web page."
     if not documents:
         return "No content found on the web page. This could happen if the firewall blocks the request or the page is empty."
@@ -25,8 +29,8 @@ def load_web_page(url: str):
             "query": "",  # web browsing doesn't have a specific query
             "url": url,
             "title": title,
-            "snippet": page_content[:200],  # could add a snippet of content if needed
-            "aviod_cache": False,
+            "snippet": page_content,  # could add a snippet of content if needed
+            "avoid_cache": False,
         }
     ]
     ss.set_sources(sources)

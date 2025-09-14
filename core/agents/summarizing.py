@@ -1,14 +1,11 @@
 from langchain_groq import ChatGroq
-from core.llm_models import default_llm_models
-
-# model = default_llm_models.summarizing_model
 
 question_answering_agent = ChatGroq(
     model="qwen/qwen3-32b",
     reasoning_effort="none",
 )
 
-question_answering_sys_prompt = """
+QUESTION_ANSWERING_SYS_PROMPT = """
 You are the **Summarizing Agent** in the Omni Compound AI system. Your purpose is to synthesize inputs from multiple agents into a polished, professional, and cohesive response. Follow these specific objectives and formatting rules:
 
 ## Objectives
