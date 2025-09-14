@@ -19,7 +19,7 @@ from core.semantic_search_cache import semantic_cache
 from core.trie import autocomplete_trie
 from core.agents.summarizing import (
     question_answering_agent,
-    question_answering_sys_prompt,
+    QUESTION_ANSWERING_SYS_PROMPT,
 )
 
 app = FastAPI(title="Omni API", description="A REST API for the Omni supervisor system")
@@ -376,7 +376,7 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                 print("Summary Content:", summary_content)
 
                 summary_input = [
-                    ("system", question_answering_sys_prompt),
+                    ("system", QUESTION_ANSWERING_SYS_PROMPT),
                     ("user", summary_content),
                 ]
 

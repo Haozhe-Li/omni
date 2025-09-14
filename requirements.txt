@@ -7,7 +7,6 @@ langgraph-supervisor
 langchain-groq
 langchain-community
 langchain-openai
-beautifulsoup4
 nest_asyncio
 rizaio
 setuptools==80.9.0
@@ -16,3 +15,4 @@ fastembed
 qdrant-client
 python-dotenv
 jieba
+spider-client
