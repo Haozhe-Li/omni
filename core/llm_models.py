@@ -1,5 +1,4 @@
 import os
-
 from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
@@ -27,7 +26,8 @@ class LLMModels:
         self.web_page_model = GPT_4_1_NANO
         self.coding_model = GPT_OSS_120B
         self.suggestion_model = ChatGroq(
-            model=LLAMA_3_1_8B_INSTANT
+            model=LLAMA_3_1_8B_INSTANT,
+            api_key=os.getenv("GROQ_API_KEY"),
         ).with_structured_output(method="json_mode")
         self.summarizing_model = QWEN_32B
         self.weather_model = GPT_4_1_NANO
