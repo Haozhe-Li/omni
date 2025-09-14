@@ -286,6 +286,10 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                 ]
                 if user_questions:
                     summary_content += f"User's question: {user_questions[-1]}\n\n"
+                if preferred_language:
+                    summary_content += f"Please answer the question in user's preferred language: {preferred_language}.\n\n"
+                else:
+                    summary_content += "Please answer the question in the SAME language as the user's input.\n\n"
                 summary_content += "Here are the findings from various agents:\n\n"
                 for result in collected_results:
                     summary_content += f"[{result['agent']}]: {result['content']}\n\n"
