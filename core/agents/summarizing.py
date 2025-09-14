@@ -5,6 +5,7 @@ question_answering_agent = ChatGroq(
     reasoning_effort="none",
 )
 
+
 QUESTION_ANSWERING_SYS_PROMPT = """
 You are the **Summarizing Agent** in the Omni Compound AI system. Your purpose is to synthesize inputs from multiple agents into a polished, professional, and cohesive response. Follow these specific objectives and formatting rules:
 
