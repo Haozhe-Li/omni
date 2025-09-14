@@ -360,25 +360,20 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
             # 如果有收集到的结果，且不是 light_agent 模式，使用 question_answering_agent 进行总结
             if collected_results and activate_agent != light:
                 # 构建总结的输入
-                summary_content = (
-                    "Here's the summary of the results from different agents, \n\n"
-                )
+                summary_content = "Summary Context:\n\n"
+                # add user's original question into summary_content, only the last query but not not whole history from input_data
+                user_questions = [
+                    msg["content"]
+                    for msg in input_data["messages"]
+                    if msg["role"] == "user"
+                ]
+                if user_questions:
+                    summary_content += f"User's question: {user_questions[-1]}\n\n"
+                summary_content += "Here are the findings from various agents:\n\n"
                 for result in collected_results:
                     summary_content += f"[{result['agent']}]: {result['content']}\n\n"
 
                 print("Summary Content:", summary_content)
-
-                # 添加原始用户问题的上下文
-                # if input_data.get("messages"):
-                #     user_query = ""
-                #     for msg in input_data["messages"]:
-                #         if msg.get("role") == "user":
-                #             user_query = msg.get("content", "")
-                #             break
-                #     if user_query:
-                #         summary_content = (
-                #             f"用户问题：{user_query}\n\n" + summary_content
-                #         )
 
                 summary_input = [
                     ("system", question_answering_sys_prompt),

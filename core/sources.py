@@ -17,6 +17,12 @@ class SourcesStore:
             if url and url not in seen_urls:
                 seen_urls.add(url)
                 unique_sources.append(source)
+        # make sure each sources's url, title is non empty, otherwise remove that source
+        unique_sources = [
+            source
+            for source in unique_sources
+            if source.get("url") and source.get("title")
+        ]
         if not hasattr(self, "sources") or not self.sources:
             self.sources = unique_sources
         else:
