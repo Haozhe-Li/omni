@@ -17,7 +17,7 @@ class SemanticSearchCache:
         self.useCache = useCache
         self.collectDataToCache = collectDataToCache
 
-    def add(self, sources: list):
+    async def add(self, sources: list):
         if not self.collectDataToCache:
             print("Cache is disabled, not adding sources.")
             return
@@ -73,7 +73,7 @@ class SemanticSearchCache:
                 )
             ]
 
-            client.upsert(
+            await client.upsert(
                 collection_name=self.collection_name,
                 points=points,
             )
@@ -82,7 +82,7 @@ class SemanticSearchCache:
             traceback.print_exc()
             print(f"Error adding sources to cache: {e}")
 
-    def get(self, query: str, k: int = 5, threshold: float = 0.8):
+    async def get(self, query: str, k: int = 5, threshold: float = 0.8):
         if not self.useCache:
             print("Cache is disabled, not retrieving sources.")
             return []
@@ -100,7 +100,7 @@ class SemanticSearchCache:
                 ),
             ]
 
-            results = client.query_points(
+            results = await client.query_points(
                 self.collection_name,
                 prefetch=prefetch,
                 query=models.FusionQuery(

@@ -306,7 +306,7 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
             sources = ss.get_sources()
             if sources:
                 yield f"data: {json.dumps({'sources': sources}, ensure_ascii=False)}\n\n"
-                semantic_cache.add(sources=sources)
+                await semantic_cache.add(sources=sources)
                 ss.clear_sources()
             yield f"data: {json.dumps({'content': '[DONE]'}, ensure_ascii=False)}\n\n"
         except Exception:

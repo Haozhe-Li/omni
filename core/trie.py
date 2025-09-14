@@ -12,9 +12,7 @@ import os
 import re
 import jieba
 
-# 定义停用词列表
 STOP_WORDS = {
-    # 英文停用词
     "in",
     "out",
     "ing",

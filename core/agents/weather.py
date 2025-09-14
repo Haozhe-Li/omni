@@ -11,7 +11,7 @@ model = init_chat_model(default_llm_models.weather_model)
 
 
 # @tool(return_direct=True)
-def get_current_weather(location: str) -> str:
+async def get_current_weather(location: str) -> str:
     """
     Get the current weather for a specified location.
 
@@ -39,7 +39,6 @@ def get_current_weather(location: str) -> str:
 
 weather_tool = [get_current_weather]
 
-# # 强制调用名为 "weather" 的工具
 # bound_model = model.bind_tools(
 #     weather_tool,
 #     tool_choice={
