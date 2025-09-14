@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from core.supervisors import supervisor
 from core.light_agent import light
 from core.utils import pretty_yield_messages
-from core.get_suggestion import SuggestionAgent
+from core.get_suggestion import suggestion_agent
 from core.sources import ss
 from core.semantic_search_cache import semantic_cache
 from core.trie import autocomplete_trie
@@ -185,87 +185,6 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
         # delegation instruction -> supervisor
         stripped = text.lstrip()
         if stripped.startswith("<delegation_instruction"):
-            return "supervisor", text
-        match = re.search(r"Name:\s*([A-Za-z0-9_\-]+)", text)
-        if match:
-            agent = match.group(1)
-            remaining = re.sub(
-                r"Name:\s*([A-Za-z0-9_\-]+)\s*", "", text, count=1
-            ).strip()
-            # Map human -> supervisor for consistency with frontend expectations
-            if agent == "human":
-                agent = "supervisor"
-            # Map research -> research_agent for consistency
-            if agent == "research":
-                agent = "research_agent"
-            return agent, remaining
-        if "Human Message" in text:
-            return "supervisor", text
-        return None, text
-
-    def _split_summarizing(text: str) -> Iterable[Tuple[str, str]]:
-        """Special handling for question_answering_agent containing <think> tags.
-
-        Yields tuples of (key, value). First the thinking part with key 'question_answering_agent',
-        then the final answer with key 'answer'. If no think tags, fall back to single event.
-        """
-        if "<think>" in text and "</think>" in text:
-            think_part = text.split("<think>", 1)[1].split("</think>", 1)[0].strip()
-            answer_part = text.split("</think>", 1)[1].strip()
-            if think_part:
-                yield ("question_answering_agent", think_part)
-            if answer_part:
-                yield ("answer", answer_part)
-        else:
-            yield ("question_answering_agent", text.strip())
-
-    def _normalize_event(agent: str | None, content: str) -> Iterable[Tuple[str, str]]:
-        """Normalize a single raw message part into one or more (key, value) events."""
-        # Clean header decorations
-        content = _clean_header(content)
-        # If agent missing, detect delegation instruction after cleaning
-        if (agent is None or agent == "content") and content.startswith(
-            "<delegation_instruction"
-        ):
-            agent = "supervisor_agent"
-        if agent == "question_answering_agent":
-            yield from _split_summarizing(content)
-        else:
-            key = agent if agent else "content"
-            yield (key, content.strip())
-
-    def _strip_ansi(s: str) -> str:
-        return ANSI_RE.sub("", s)
-
-    def _clean_header(text: str) -> str:
-        """Remove decorative lines, banners (Ai/Human Message), ANSI codes, blank lines."""
-        text = _strip_ansi(text)
-        cleaned: List[str] = []
-        for raw in text.splitlines():
-            line = raw.strip()
-            if not line:
-                continue
-            if re.match(r"^=+$", line):
-                continue
-            if re.search(r"Ai Message", line, re.IGNORECASE):
-                continue
-            if re.search(r"Human Message", line, re.IGNORECASE):
-                continue
-            if re.search(r"Tool Message", line, re.IGNORECASE):
-                continue
-            cleaned.append(line)
-        return "\n".join(cleaned).strip()
-
-    def _extract_agent_name(text: str) -> Tuple[str | None, str]:
-        """Return (agent_name, remaining_text_without_name_line).
-
-        Additional rules:
-        - delegation_instruction blocks are attributed to supervisor
-        - human messages mapped to supervisor
-        """
-        # delegation instruction -> supervisor
-        stripped = text.lstrip()
-        if stripped.startswith("<delegation_instruction"):
             return "supervisor_agent", text
         match = re.search(r"Name:\s*([A-Za-z0-9_\-]+)", text)
         if match:
@@ -318,18 +237,16 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
     async def response_generator():
         """Generate standardized streaming response events per new front-end spec."""
         try:
-            # 收集所有的结果用于最后的总结
             collected_results = []
             last_light_agent: str | None = None
 
-            for chunk in activate_agent.stream(input_data):
+            async for chunk in activate_agent.astream(input_data):
                 for raw in pretty_yield_messages(chunk, last_message=True):
                     agent, remainder = _extract_agent_name(raw)
                     for key, value in _normalize_event(agent, remainder):
                         if not value:
                             continue
 
-                        # 收集结果用于总结（包含所有内容）
                         if value.strip():
                             collected_results.append({"agent": key, "content": value})
 
@@ -380,18 +297,17 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
                     ("user", summary_content),
                 ]
 
-                final_answer = question_answering_agent.invoke(summary_input).content
+                res = await question_answering_agent.ainvoke(summary_input)
+                final_answer = res.content
                 print("Final Answer:", final_answer)
 
                 yield f"data: {json.dumps({'answer': final_answer}, ensure_ascii=False)}\n\n"
 
-            # Sources (if any)
             sources = ss.get_sources()
             if sources:
                 yield f"data: {json.dumps({'sources': sources}, ensure_ascii=False)}\n\n"
-                semantic_cache.add(sources=sources)
+                await semantic_cache.add(sources=sources)
                 ss.clear_sources()
-            # Done signal
             yield f"data: {json.dumps({'content': '[DONE]'}, ensure_ascii=False)}\n\n"
         except Exception:
             traceback.print_exc()
@@ -412,12 +328,10 @@ async def stream_endpoint(input_query: QueryModel) -> StreamingResponse:
 @app.post("/suggestion")
 async def suggest_endpoint(suggestion_model: SuggestionModel):
     input_data = suggestion_model.question
-    suggestion_agent = SuggestionAgent()
     if not input_data or input_data.strip() == "":
-        suggestion = suggestion_agent.get_welcome_suggestion()
+        suggestion = await suggestion_agent.get_welcome_suggestion()
     else:
-        suggestion = suggestion_agent.get_suggestion(question=input_data)
-    print("Suggestion:", suggestion)
+        suggestion = await suggestion_agent.get_suggestion(question=input_data)
     return suggestion
 
 

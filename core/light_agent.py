@@ -8,7 +8,7 @@ from core.sources import ss
 from core.semantic_search_cache import semantic_cache
 
 
-def web_search(querys: list[str]) -> Optional[tuple[list[dict], str, dict]]:
+async def web_search(querys: list[str]) -> Optional[tuple[list[dict], str, dict]]:
     """Perform a web search using Google Serper API.
 
     Args:
@@ -21,14 +21,14 @@ def web_search(querys: list[str]) -> Optional[tuple[list[dict], str, dict]]:
     search = GoogleSerperAPIWrapper(k=3)
     results = []
     for query in querys:
-        result = search.results(query)
+        result = await search.aresults(query)
         results.extend(result.get("organic", []))
     answer_box = result.get("answerBox", "")
     knowledge_graph = result.get("knowledgeGraph", {})
     return results, answer_box, knowledge_graph
 
 
-def quick_search(query: str) -> str:
+async def quick_search(query: str) -> str:
     """Perform a quick search and return a summary of the results.
 
     Args:
@@ -37,7 +37,7 @@ def quick_search(query: str) -> str:
     Returns:
         str: A summary of the search results.
     """
-    cached_sources = semantic_cache.get(query, threshold=0.7)
+    cached_sources = await semantic_cache.get(query, threshold=0.7)
     if cached_sources:
         print(f"Using cached sources for query: {query}")
         ss.set_sources(cached_sources)
@@ -46,7 +46,7 @@ def quick_search(query: str) -> str:
             for source in cached_sources
         )
         return context
-    search_results, answer_box, knowledge_graph = web_search([query])
+    search_results, answer_box, knowledge_graph = await web_search([query])
     if not search_results:
         return "No search results found."
     urls = [result["link"] for result in search_results]

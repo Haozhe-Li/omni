@@ -12,20 +12,19 @@ nest_asyncio.apply()
 model = init_chat_model(default_llm_models.research_model)
 
 
-def web_search(
+async def web_search(
     querys: list[str], k: int = 5, tbs: str = ""
 ) -> tuple[list[dict], str, dict]:
     # concat queries if it is more than 5
     if len(querys) > 5:
         querys = querys[:5]
-    print(f"Performing web search for queries: {querys}")
     if not tbs:
         search = GoogleSerperAPIWrapper(k=k)
     else:
         search = GoogleSerperAPIWrapper(k=k, tbs=tbs)
     results = []
     for query in querys:
-        result = search.results(query)
+        result = await search.aresults(query)
         results.extend(result.get("organic", []))
     answer_box = result.get("answerBox", "")
     knowledge_graph = result.get("knowledgeGraph", {})
@@ -33,7 +32,9 @@ def web_search(
 
 
 @tool(return_direct=True)
-def research(queries: list[str], time_level: str = "", use_cache: bool = True) -> dict:
+async def research(
+    queries: list[str], time_level: str = "", use_cache: bool = True
+) -> dict:
     """Research topics using web search and return the context.
 
     Args:
@@ -65,13 +66,13 @@ def research(queries: list[str], time_level: str = "", use_cache: bool = True) -
     for query in queries:
         if use_cache and time_level not in ["day", "week"]:
             # Use semantic search cache if available
-            cached_sources = semantic_cache.get(query, threshold=0.85)
+            cached_sources = await semantic_cache.get(query, threshold=0.85)
             if cached_sources:
                 print(f"Using cached sources for query: {query}")
                 all_sources.extend(cached_sources)
                 continue
 
-        search_results, answer_box, knowledge_graph = web_search(
+        search_results, answer_box, knowledge_graph = await web_search(
             querys=[query], k=5, tbs=tbs
         )
         if not search_results:

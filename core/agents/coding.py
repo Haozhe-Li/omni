@@ -1,16 +1,16 @@
 import os
 import ast
 
-from rizaio import Riza
+from rizaio import AsyncRiza
 from langgraph.prebuilt import create_react_agent
 from core.llm_models import default_llm_models
 
-riza = Riza(
+riza = AsyncRiza(
     api_key=os.environ.get("RIZA_API_KEY"),
 )
 
 
-def check_compile(code_string: str) -> tuple[bool, str]:
+async def check_compile(code_string: str) -> tuple[bool, str]:
     """
     Test if a Python code string can be compiled.
 
@@ -30,7 +30,7 @@ def check_compile(code_string: str) -> tuple[bool, str]:
         return False, f"Compilation error: {str(e)}"
 
 
-def run_python_tool(code: str) -> str:
+async def run_python_tool(code: str) -> str:
     """Executes Python code.
 
     Args:
@@ -39,11 +39,10 @@ def run_python_tool(code: str) -> str:
     Returns:
         str: The output of the executed code.
     """
-    print("Running code:", code)
-    is_valid, error_message = check_compile(code)
+    is_valid, error_message = await check_compile(code)
     if not is_valid:
         return f"Code compilation failed: {error_message}"
-    response = riza.command.exec(
+    response = await riza.command.exec(
         runtime_revision_id=os.environ.get("RIZA_RUNTIME_ID"),
         language="python",
         code=code,

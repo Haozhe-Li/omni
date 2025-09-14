@@ -44,7 +44,7 @@ Output:
 Original Question: {question}
 Output:"""
 
-    def get_suggestion(self, question: str) -> str:
+    async def get_suggestion(self, question: str) -> str:
         """Get a suggestion based on the provided question.
 
         Args:
@@ -53,14 +53,15 @@ Output:"""
         Returns:
             str: A JSON string containing the suggested follow-up questions.
         """
-        response = self.model.invoke(self.prompt.format(question=question))
-        return response
+        return await self.model.ainvoke(self.prompt.format(question=question))
 
-    def get_welcome_suggestion(self) -> str:
+    async def get_welcome_suggestion(self) -> str:
         """Get a welcome suggestion.
 
         Returns:
             str: A JSON string containing the welcome suggestion.
         """
-        response = self.model.invoke(self.welcome_prompt)
-        return response
+        return await self.model.ainvoke(self.welcome_prompt)
+
+
+suggestion_agent = SuggestionAgent()

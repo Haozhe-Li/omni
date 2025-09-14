@@ -8,15 +8,22 @@ from langchain_community.document_loaders import SpiderLoader
 model = default_llm_models.web_page_model
 
 
-def load_web_page(url: str):
-    """Load a web page and return its content."""
+async def load_web_page(url: str):
+    """Load a web page and return its content.
+
+    Args:
+        url (str): The URL of the web page to load.
+
+    Returns:
+        Document: The loaded web page content as a Document.
+    """
     try:
         loader = SpiderLoader(
             api_key=os.getenv("SPIDER_API_KEY"),
             url=url,
             mode="scrape",
         )
-        documents = loader.load()
+        documents = await loader.aload()
     except Exception as e:
         traceback.print_exc()
         return "Failed to load the web page."
